@@ -1,0 +1,54 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate site/js/config.js from repository variables
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ vars.SUPABASE_KEY }}
+          SUPABASE_BUCKET: ${{ vars.SUPABASE_BUCKET }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_KEY" ]; then
+            echo "::error::Missing SUPABASE_URL or SUPABASE_KEY repository variable"
+            exit 1
+          fi
+          cat > site/js/config.js <<EOF
+          /* generated at deploy - do not edit */
+          window.APP_CONFIG = {
+            url: "${SUPABASE_URL}",
+            key: "${SUPABASE_KEY}",
+            bucket: "${SUPABASE_BUCKET:-ng-photos}"
+          };
+          EOF
+          cat site/js/config.js
+
+      - uses: actions/configure-pages@v5
+
+      # path: . keeps the existing /site/ URL working
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
