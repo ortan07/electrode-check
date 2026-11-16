@@ -1,0 +1,4 @@
+# ค่า config จริง — ไม่ขึ้น git
+# บนเว็บที่ deploy ไฟล์นี้ถูกสร้างอัตโนมัติโดย .github/workflows/deploy.yml
+# รันในเครื่อง: copy site/js/config.example.js เป็น site/js/config.js แล้วใส่ค่าจริง
+site/js/config.js
