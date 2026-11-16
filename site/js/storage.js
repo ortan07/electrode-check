@@ -1,7 +1,7 @@
 /* เก็บ/โหลดข้อมูล (localStorage) + Export / Import Excel */
 const Store = {
   KEY: 'electrode_v2',
-  CFG: { url: 'https://cyluvzqkssxofkrjxmzi.supabase.co', key: 'sb_publishable_cjTsS0r2NpjC2nL4jcBU-g_CDjtkJEj', bucket: 'ng-photos' },   // ← ใส่ Project URL และ anon public key จาก Supabase (Project Settings → API)
+  CFG: Object.assign({ url: '', key: '', bucket: 'ng-photos' }, window.APP_CONFIG || {}),   // ← ค่าจริงมาจาก js/config.js (ไม่ขึ้น git) ดูตัวอย่างที่ js/config.example.js
   V: 'electrode_v2_ver', D: 'electrode_v2_dirty',
   ok() { return !!(this.CFG.url && this.CFG.key); },
   uid: () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
