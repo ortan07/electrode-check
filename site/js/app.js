@@ -4,8 +4,8 @@ document.head.insertAdjacentHTML('beforeend', '<style>#view .sum{margin-left:aut
 let st = Store.load(), cur = 0;
 st.by = st.by || ''; st.date = st.date || ''; st.line = st.line || '';
 let mode = 'entry', tvRows = [], bulkLine = '', tsel = new Set();
-const noLine = x => /AS186|AS187/.test(x.name);   // ซีต AS186/AS187 ไม่มี Line
-const lineOf = x => (x.lineOv || '').trim() || (x.name.match(/AS\d+/) || [x.name])[0];   // Line = เลข AS จากชื่อซีต (กรอกทับเองได้ถ้าต้องการ)
+const noLine = x => /AS186|AS187/.test(x.name); // ซีต AS186/AS187 ไม่มี Line
+const lineOf = x => (x.lineOv || '').trim() || (x.name.match(/AS\d+/) || [x.name])[0]; // Line = เลข AS จากชื่อซีต (กรอกทับเองได้ถ้าต้องการ)
 const tf = { scope: 'sheet', d: '', by: '', line: '', g: '', ty: '', ng: false, rev: true };
 const $ = s => document.querySelector(s);
 const esc = v => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
@@ -14,7 +14,7 @@ let phIdx = 0;
 const photoSrc = r => r.phd || (r.ph ? Store.photoUrl(r.ph) : '');
 const photoCell = r => r.phd ? `<img class="thumb" src="${r.phd}" data-zoom="${r.phd}" data-cap="รูป NG"> <button class="tg" tabindex="-1" data-act="phdel">ลบรูป</button>` : '<button class="tg" tabindex="-1" data-act="ph">📷 ถ่ายรูป</button>';
 const thumb = r => { const u = photoSrc(r); return u ? `<img class="thumb" src="${u}" data-zoom="${u}" data-cap="รูป NG ${esc(r.d)} ชิ้นที่ ${r.p}" loading="lazy">` : ''; };
-const shrink = f => new Promise((ok, no) => {   // ย่อรูปเหลือด้านยาวสุด 1280px (JPEG) ก่อนเก็บ
+const shrink = f => new Promise((ok, no) => { // ย่อรูปเหลือด้านยาวสุด 1280px (JPEG) ก่อนเก็บ
   const u = URL.createObjectURL(f), im = new Image();
   im.onload = () => { const k = Math.min(1, 1280 / Math.max(im.width, im.height)), c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(u); ok(c.toDataURL('image/jpeg', .8)); };
   im.onerror = () => no(new Error('อ่านรูปไม่ได้')); im.src = u;
@@ -29,7 +29,7 @@ const TYPES = [['wc', 'Regrinding / Wire Cut'], ['new', 'New']];
 const tyOpts = v => TYPES.map(([k, n]) => `<option value="${k}" ${(v === 'new' ? 'new' : 'wc') === k ? 'selected' : ''}>${n}</option>`).join('');
 const tyShort = r => (r.ty === 'new' ? 'New' : 'Wire Cut');
 const FIELDS = [['w', 'Width'], ['l', 'Length'], ['t', 'Thickness']];
-const refImgs = s => ((SEED.sheets.find(x => x.name === s.name) || {}).imgs) || {};   // (บรรทัดนี้อ่านจาก data.js เท่านั้น)   // รูปอ้างอิงมาจากไฟล์โค้ดเท่านั้น แก้ในเว็บไม่ได้
+const refImgs = s => ((SEED.sheets.find(x => x.name === s.name) || {}).imgs) || {}; // (บรรทัดนี้อ่านจาก data.js เท่านั้น) // รูปอ้างอิงมาจากไฟล์โค้ดเท่านั้น แก้ในเว็บไม่ได้
 const nk = s => FIELDS.filter(([k]) => s.fields[k]).map(f => f[0]);
 let specOpen = false;
 /* ---------- เช็คค่าหลุดขนาด (LSL/USL จาก Drawing) ---------- */
@@ -39,7 +39,12 @@ const oos = (s, r, k) => {
   return (a !== '' && Charts.num(+a) && v < +a - E) || (b !== '' && Charts.num(+b) && v > +b + E);
 };
 const oosAny = (s, r) => nk(s).some(k => oos(s, r, k));
-const applySpec = (s, r) => { if (!r.manual) r.rn = oosAny(s, r); };   // หลุดขนาด → Result = NG อัตโนมัติ (ถ้าผู้ใช้กดสลับเองแล้ว จะไม่ทับ)
+const applySpec = (s, r) => { if (!r.manual) r.rn = oosAny(s, r); }; // หลุดขนาด → Result = NG อัตโนมัติ (ถ้าผู้ใช้กดสลับเองแล้ว จะไม่ทับ)
+/* ช่วงสเปกของชิ้นที่กำลังคีย์ (ไว้โชว์เป็น placeholder ให้คนคีย์รู้ว่าค่าควรอยู่เท่าไร) */
+const spRange = (s, r, k) => {
+  const [a, b] = Charts.getLim(s, Charts.key(Charts.rty(r), r.g), k);
+  return (a !== '' && b !== '') ? `${a} – ${b}` : '';
+};
 function paintRow(tr, s, r) {
   tr.querySelectorAll('.de').forEach(el => el.classList.toggle('oos', oos(s, r, el.dataset.k)));
   const b = tr.querySelector('[data-act="rn"]'); if (b) { b.textContent = r.rn ? 'NG' : 'OK'; b.classList.toggle('ngon', !!r.rn); }
@@ -68,33 +73,46 @@ function drawEntry() {
   if (!st.date) st.date = iso();
   const dmy = toDMY(st.date), keys = nk(s), cols = FIELDS.filter(([k]) => s.fields[k]);
   const lines = [...new Set(st.sheets.flatMap(x => x.rows.map(r => r.line)).filter(Boolean))], prev = s.rows.slice(-5);
+  const d0 = s.draft[0] || { g: 'up', ty: s.lastTy || 'wc' };
+
+  /* แถบสรุปของวันที่เลือก – ให้คนคีย์เห็นทันทีว่าวันนี้ทำไปแล้วกี่ชิ้น */
+  const td = s.rows.filter(r => r.d === dmy), tdUp = td.filter(r => r.g === 'up').length, tdNG = td.filter(r => Charts.isNG(r)).length;
+  const todayBar = `<div class="todaybar">
+<span class="pill">บันทึกแล้วของ <b>${esc(dmy)}</b> : <b>${td.length}</b> ชิ้น</span>
+<span class="pill">Upper <b>${tdUp}</b> / Lower <b>${td.length - tdUp}</b></span>
+<span class="pill ${tdNG ? 'ng' : ''}">NG <b>${tdNG}</b></span>
+<span class="pill">ซีตนี้รวม <b>${s.rows.length}</b> ชิ้น</span></div>`;
+
   const pv = prev.length ? `<div class="prev"><div class="pt">ชิ้นก่อนหน้า (${prev.length} ชิ้นล่าสุดที่บันทึกแล้ว)</div><div class="tw"><table class="pvt"><thead><tr><th>วันที่</th><th>ชิ้นที่</th><th>Line</th><th>up/low</th><th>ประเภท</th>${cols.map(c => `<th>${c[1]}</th>`).join('')}<th>Appearance</th><th>Result</th></tr></thead><tbody>${prev.map(r => `<tr class="${Charts.isNG(r) ? 'ngrow' : ''}"><td>${esc(r.d)}</td><td>${r.p}</td><td>${esc(r.line || '-')}</td><td>${r.g}</td><td>${tyShort(r)}</td>${keys.map(k => `<td>${r[k] ?? ''}</td>`).join('')}<td>${r.ok || ''}</td><td>${r.res || ''}</td></tr>`).join('')}</tbody></table></div></div>` : '<div class="prev hint">ซีตนี้ยังไม่มีข้อมูลที่บันทึก</div>';
+
   const specBox = `<details id="specBox" class="specbox" ${specOpen ? 'open' : ''}><summary>📐 Spec จาก Drawing (LSL / USL) – ใช้เช็คค่าหลุดขนาด</summary><div class="tw"><table class="spect"><thead><tr><th>ประเภท</th><th>up/low</th>${cols.map(c => `<th colspan="2">${c[1]}<br>LSL / USL</th>`).join('')}</tr></thead><tbody>${[['wc', 'up'], ['wc', 'low'], ['new', 'up'], ['new', 'low']].map(([ty, g]) => `<tr><td>${ty === 'new' ? 'New' : 'Wire Cut'}</td><td>${g}</td>${keys.map(k => { const key = Charts.key(ty, g), [a, b, lk] = Charts.getLim(s, key, k), d = lk ? 'disabled' : ''; return `<td><input class="sp" type="number" step="any" data-sg="${key}" data-sk="${k}" data-sb="0" value="${a}" ${d}></td><td><input class="sp" type="number" step="any" data-sg="${key}" data-sk="${k}" data-sb="1" value="${b}" ${d}></td>`; }).join('')}</tr>`).join('')}</tbody></table></div><div class="hint">ดูค่า LSL/USL จากรูป Drawing ด้านบน แล้วกรอกไว้ครั้งเดียว · ค่าชุดนี้ใช้ร่วมกับกราฟด้านล่าง · ช่องที่ 🔒 ล็อกไว้ แก้ได้ที่ปุ่มล็อกใต้กราฟ</div></details>`;
+
   $('#entry').innerHTML = `
-  <h3>คีย์ข้อมูล</h3>
-  <div class="meta">
-    <label>วันที่<input type="date" id="eDate" value="${st.date}"></label>
-    <label>ผู้บันทึก<input id="eBy" value="${esc(st.by)}" placeholder="ชื่อผู้คีย์"></label>
-    ${noLine(s) ? '' : `<label>Line (ไม่ต้องกรอกก็ได้)<input id="eLine" list="lineList" value="${esc(s.lineOv)}" placeholder="${esc(lineOf(s))}"></label>`}<datalist id="lineList">${lines.map(l => `<option value="${esc(l)}">`).join('')}</datalist>
-    <div class="chips">ค่าที่วัด: ${FIELDS.map(([k, n]) => `<label class="ck"><input type="checkbox" data-f="${k}" ${s.fields[k] ? 'checked' : ''}> ${n}</label>`).join('')}</div>
-  </div>
-  ${pv}
-  ${specBox}
-  <div class="pt">กำลังคีย์ – ชิ้นถัดไป (ยังไม่บันทึก)</div>
-  <div class="tw"><table id="draft"><thead><tr><th>ชิ้นที่</th><th>up/low</th><th>ประเภท</th>${FIELDS.filter(([k]) => s.fields[k]).map(f => `<th>${f[1]}</th>`).join('')}<th title="Appearance (ลักษณะภายนอก)">Appearance NG</th><th title="result (ผลรวม)">Result NG</th><th>Remark</th><th>รูป NG</th><th></th></tr></thead><tbody>
-  ${s.draft.map((r, i) => `<tr data-i="${i}"><td class="pn" data-l="ชิ้นที่">${maxP(s, dmy, r.g) + s.draft.slice(0, i).filter(x => x.g === r.g).length + 1}</td>
-    <td data-l="up/low"><button class="tg" tabindex="-1" data-act="g">${r.g}</button></td>
-    <td data-l="ประเภท"><select class="dt" tabindex="-1">${tyOpts(r.ty)}</select></td>
-    ${cols.map(([k, n]) => `<td data-l="${n}"><input class="de ${oos(s, r, k) ? 'oos' : ''}" data-k="${k}" type="number" step="any" inputmode="decimal" enterkeyhint="next" value="${esc(r[k])}"></td>`).join('')}
-    <td data-l="Appearance"><button class="tg ${r.ng ? 'ngon' : ''}" tabindex="-1" data-act="ng">${r.ng ? 'NG' : 'OK'}</button></td>
-    <td data-l="Result"><button class="tg ${r.rn ? 'ngon' : ''}" tabindex="-1" data-act="rn">${r.rn ? 'NG' : 'OK'}</button></td>
-    <td class="rmc" data-l="Remark"><input class="dr" data-k="rm" type="text" placeholder="Remark" value="${esc(r.rm)}"></td>
-    <td class="phc" data-l="รูป NG (ถ่ายตอน Appearance = NG)">${r.ng ? photoCell(r) : ''}</td>
-    <td class="dlc"><button class="x" tabindex="-1" data-act="del">✕</button></td></tr>`).join('')}
-  </tbody></table></div>
-  <div class="lm"><button class="btn" id="btnAdd">＋ ชิ้นถัดไป</button>
-    <button class="btn primary" id="btnUpdate">Update ▶ แสดงกราฟ</button><span id="msg"></span></div>
-  <div class="hint">พิมพ์ค่าแล้วกด Enter เพื่อไปช่องถัดไป / ชิ้นถัดไปอัตโนมัติ · กดปุ่ม up/low และ OK/NG เพื่อสลับ · วัดครบแล้วกด Update</div>`;
+<h3>คีย์ข้อมูล</h3>
+<div class="meta">
+<label>วันที่<input type="date" id="eDate" value="${st.date}"></label>
+<label>ผู้บันทึก<input id="eBy" value="${esc(st.by)}" placeholder="ชื่อผู้คีย์"></label>
+${noLine(s) ? '' : `<label>Line (ไม่ต้องกรอกก็ได้)<input id="eLine" list="lineList" value="${esc(s.lineOv)}" placeholder="${esc(lineOf(s))}"></label>`}<datalist id="lineList">${lines.map(l => `<option value="${esc(l)}">`).join('')}</datalist>
+<div class="chips">ค่าที่วัด: ${FIELDS.map(([k, n]) => `<label class="ck"><input type="checkbox" data-f="${k}" ${s.fields[k] ? 'checked' : ''}> ${n}</label>`).join('')}</div>
+</div>
+${todayBar}
+${pv}
+${specBox}
+<div class="pt">กำลังคีย์ – ${s.draft.length} ชิ้น (ยังไม่บันทึก) · ตัวเลขในช่องสีจาง = ช่วงสเปกที่ยอมรับได้</div>
+<div class="tw"><table id="draft"><thead><tr><th>ชิ้นที่</th><th>up/low</th><th>ประเภท</th>${cols.map(([k, n]) => { const rg = spRange(s, d0, k); return `<th>${n}${rg ? `<span class="spsub">${rg}</span>` : ''}</th>`; }).join('')}<th title="Appearance (ลักษณะภายนอก)">Appearance NG</th><th title="result (ผลรวม)">Result NG</th><th>Remark</th><th>รูป NG</th><th></th></tr></thead><tbody>
+${s.draft.map((r, i) => `<tr data-i="${i}"><td class="pn" data-l="ชิ้นที่">${maxP(s, dmy, r.g) + s.draft.slice(0, i).filter(x => x.g === r.g).length + 1}</td>
+<td data-l="up/low"><button class="tg" tabindex="-1" data-act="g">${r.g}</button></td>
+<td data-l="ประเภท"><select class="dt" tabindex="-1">${tyOpts(r.ty)}</select></td>
+${cols.map(([k, n]) => { const rg = spRange(s, r, k); return `<td data-l="${n}${rg ? ` (${rg})` : ''}"><input class="de ${oos(s, r, k) ? 'oos' : ''}" data-k="${k}" type="number" step="any" inputmode="decimal" enterkeyhint="next" placeholder="${rg || n}" title="${rg ? `${n} ต้องอยู่ระหว่าง ${rg}` : n}" value="${esc(r[k])}"></td>`; }).join('')}
+<td data-l="Appearance"><button class="tg ${r.ng ? 'ngon' : ''}" tabindex="-1" data-act="ng">${r.ng ? 'NG' : 'OK'}</button></td>
+<td data-l="Result"><button class="tg ${r.rn ? 'ngon' : ''}" tabindex="-1" data-act="rn">${r.rn ? 'NG' : 'OK'}</button></td>
+<td class="rmc" data-l="Remark"><input class="dr" data-k="rm" type="text" placeholder="Remark" value="${esc(r.rm)}"></td>
+<td class="phc" data-l="รูป NG (ถ่ายตอน Appearance = NG)">${r.ng ? photoCell(r) : ''}</td>
+<td class="dlc"><button class="x" tabindex="-1" data-act="del">✕</button></td></tr>`).join('')}
+</tbody></table></div>
+<div class="lm"><button class="btn" id="btnAdd">＋ ชิ้นถัดไป</button>
+<button class="btn primary" id="btnUpdate">Update ▶ แสดงกราฟ</button><span id="msg"></span></div>
+<div class="hint">พิมพ์ค่าแล้วกด Enter เพื่อไปช่องถัดไป / ชิ้นถัดไปอัตโนมัติ · กดปุ่ม up/low และ OK/NG เพื่อสลับ · ค่าที่หลุดสเปกช่องจะเป็นสีแดงและตั้ง Result = NG ให้เอง · วัดครบแล้วกด Update</div>`;
 }
 function say(t) { const m = $('#msg'); if (m) m.textContent = t; }
 function focusPiece(i, k) {
@@ -132,21 +150,21 @@ function drawSaved() {
   const s = sheet(), inp = (k, r) => `<input data-k="${k}" type="${k === 'd' || k === 'by' || k === 'line' || k === 'rm' ? 'text' : 'number'}" step="any" value="${esc(r[k])}">`;
   $('#savedSum').textContent = `ข้อมูลที่บันทึกแล้ว (${s.rows.length} ชิ้น) – ดู/แก้/ลบ`;
   $('#saved').innerHTML = `<table id="tbl"><thead><tr><th>Date</th><th>Record by</th><th>Line</th><th>pcs</th><th>up/low</th><th>ประเภท</th><th>Width</th><th>Length</th><th>Thickness</th><th>Appearance</th><th>Result</th><th>Remark</th><th>รูป</th><th></th></tr></thead><tbody>
-  ${s.rows.map((r, i) => `<tr data-i="${i}"><td>${inp('d', r)}</td><td>${inp('by', r)}</td><td>${inp('line', r)}</td><td>${inp('p', r)}</td>
-    <td><select data-k="g"><option ${r.g === 'up' ? 'selected' : ''}>up</option><option ${r.g === 'low' ? 'selected' : ''}>low</option></select></td>
-    <td><select data-k="ty">${tyOpts(r.ty)}</select></td>
-    <td>${inp('w', r)}</td><td>${inp('l', r)}</td><td>${inp('t', r)}</td>
-    <td><select data-k="ok">${['', 'OK', 'NG'].map(o => `<option ${r.ok === o ? 'selected' : ''}>${o}</option>`).join('')}</select></td>
-    <td><select data-k="res">${['', 'OK', 'NG'].map(o => `<option ${r.res === o ? 'selected' : ''}>${o}</option>`).join('')}</select></td>
-    <td>${inp('rm', r)}</td><td>${thumb(r)}</td>
-    <td><button class="x" data-del="${i}" title="ลบแถว">✕</button></td></tr>`).join('')}</tbody></table>`;
+${s.rows.map((r, i) => `<tr data-i="${i}"><td>${inp('d', r)}</td><td>${inp('by', r)}</td><td>${inp('line', r)}</td><td>${inp('p', r)}</td>
+<td><select data-k="g"><option ${r.g === 'up' ? 'selected' : ''}>up</option><option ${r.g === 'low' ? 'selected' : ''}>low</option></select></td>
+<td><select data-k="ty">${tyOpts(r.ty)}</select></td>
+<td>${inp('w', r)}</td><td>${inp('l', r)}</td><td>${inp('t', r)}</td>
+<td><select data-k="ok">${['', 'OK', 'NG'].map(o => `<option ${r.ok === o ? 'selected' : ''}>${o}</option>`).join('')}</select></td>
+<td><select data-k="res">${['', 'OK', 'NG'].map(o => `<option ${r.res === o ? 'selected' : ''}>${o}</option>`).join('')}</select></td>
+<td>${inp('rm', r)}</td><td>${thumb(r)}</td>
+<td><button class="x" data-del="${i}" title="ลบแถว">✕</button></td></tr>`).join('')}</tbody></table>`;
   flag();
 }
 function flag() {
   const s = sheet();
   document.querySelectorAll('#tbl tbody tr').forEach(tr => {
     const r = s.rows[+tr.dataset.i];
-    ['w', 'l', 't'].forEach(k => { const el = tr.querySelector(`[data-k="${k}"]`); el.classList.toggle('out', Charts.isOutlier(s, r, k)); el.classList.toggle('oos', oos(s, r, k)); });
+    ['w', 'l', 't'].forEach(k => { const el = tr.querySelector(`[data-k="${k}"]`); if (!el) return; el.classList.toggle('out', Charts.isOutlier(s, r, k)); el.classList.toggle('oos', oos(s, r, k)); });
     tr.querySelector('[data-k="p"]').classList.toggle('dupc', !!dupOf(s, r));
     tr.querySelector('[data-k="ok"]').classList.toggle('ngc', r.ok === 'NG'); tr.querySelector('[data-k="res"]').classList.toggle('ngc', r.res === 'NG');
   });
@@ -171,12 +189,12 @@ function drawSheet() {
   const s = sheet(), im = refImgs(s);
   const card = (title, x) => `<div class="card"><h3>${title}${x ? ` · <span class="dn">${x.label}</span>` : ''}</h3><div class="dimg">${x ? `<img src="${x.src}" alt="${x.label}" data-zoom="${x.src}" data-cap="${x.label}">` : '<div class="noimg">ไม่มีรูปอ้างอิง</div>'}</div>${x ? '<div class="hint">คลิกที่รูปเพื่อขยาย (ซูม/ลากดูรายละเอียดได้)</div>' : ''}</div>`;
   $('#view').innerHTML = `
-  <div class="head"><img class="logo" src="images/logo.png" alt="Siam Aisin"><div class="ttl"><h1>Electrode Change Check Sheet</h1><div class="sn">${esc(s.name)}</div></div>
-    <div class="sum" id="sum"></div></div>
-  <div class="draws ${im.both ? 'one' : ''}">${im.both ? card('Drawing (Upper / Lower)', im.both) : card('Drawing upper', im.upper) + card('Drawing lower', im.lower)}</div>
-  <div class="card" id="entry"></div>
-  <div id="charts"></div>
-  <details class="card"><summary id="savedSum"></summary><div class="tw" id="saved"></div></details>`;
+<div class="head"><img class="logo" src="images/logo.png" alt="Siam Aisin"><div class="ttl"><h1>Electrode Change Check Sheet</h1><div class="sn">${esc(s.name)}</div></div>
+<div class="sum" id="sum"></div></div>
+<div class="draws ${im.both ? 'one' : ''}">${im.both ? card('Drawing (Upper / Lower)', im.both) : card('Drawing upper', im.upper) + card('Drawing lower', im.lower)}</div>
+<div class="card" id="entry"></div>
+<div id="charts"></div>
+<details class="card"><summary id="savedSum"></summary><div class="tw" id="saved"></div></details>`;
   drawSum(); drawEntry(); drawSaved(); Charts.render(s, $('#charts'));
 }
 
@@ -189,37 +207,68 @@ function viewRows() {
   (tf.scope === 'all' ? st.sheets : [sheet()]).forEach(s => s.rows.forEach(r => all.push({ s, r })));
   const f = all.filter(({ r }) => (!tf.d || r.d === tf.d) && (!tf.by || r.by === tf.by) && (!tf.line || (r.line || '') === tf.line) && (!tf.g || r.g === tf.g) && (!tf.ty || Charts.rty(r) === tf.ty) && (!tf.ng || Charts.isNG(r)));
   const dk = d => { const m = String(d || '').match(/(\d+)\/(\d+)\/(\d+)/); return m ? +m[3] * 10000 + +m[2] * 100 + +m[1] : 0; };
-  f.sort((a, b) => (tf.rev ? -1 : 1) * (dk(a.r.d) - dk(b.r.d)) || st.sheets.indexOf(a.s) - st.sheets.indexOf(b.s) || (a.r.g === 'up' ? 0 : 1) - (b.r.g === 'up' ? 0 : 1) || (+a.r.p || 0) - (+b.r.p || 0));   // วันที่ → ซีต → Upper ก่อน Lower → ชิ้นที่ (pcs) 1,2,3…
+  f.sort((a, b) => (tf.rev ? -1 : 1) * (dk(a.r.d) - dk(b.r.d)) || st.sheets.indexOf(a.s) - st.sheets.indexOf(b.s) || (a.r.g === 'up' ? 0 : 1) - (b.r.g === 'up' ? 0 : 1) || (+a.r.p || 0) - (+b.r.p || 0)); // วันที่ → ซีต → Upper ก่อน Lower → ชิ้นที่ (pcs) 1,2,3…
   return { all, f };
 }
 function drawTable() {
-  const { all, f } = viewRows(); tvRows = f; const u = k => [...new Set(all.map(x => x.r[k]).filter(Boolean))];
+  const { all, f } = viewRows(); tvRows = f;
+  const u = k => [...new Set(all.map(x => x.r[k]).filter(Boolean))];
+  const all_ = tf.scope === 'all', curS = sheet(), sheetsIn = all_ ? st.sheets : [curS];
+  /* แสดงเฉพาะคอลัมน์ค่าที่ซีตนั้นวัดจริง – ตารางจะสั้นลงและอ่านง่ายขึ้น */
+  let cols = FIELDS.filter(([k]) => sheetsIn.some(x => x.fields && x.fields[k]) || f.some(({ r }) => Charts.num(r[k])));
+  if (!cols.length) cols = FIELDS.slice();
   const sel = (t, label, vals) => `<label>${label}<select class="tf" data-t="${t}"><option value="">ทั้งหมด</option>${vals.map(v => `<option ${tf[t] === v ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select></label>`;
   const tin = (k, r, c = '', dis = false) => `<input ${dis ? 'disabled' : ''} class="te ${c}" data-k="${k}" type="${['p', 'w', 'l', 't'].includes(k) ? 'number' : 'text'}" step="any" value="${esc(r[k])}">`;
-  const selN = f.filter(x => tsel.has(x.r)).length, all_ = tf.scope === 'all', ngN = f.filter(x => Charts.isNG(x.r)).length, dupN = f.filter(x => dupOf(x.s, x.r)).length;
+  const selN = f.filter(x => tsel.has(x.r)).length, ngN = f.filter(x => Charts.isNG(x.r)).length, dupN = f.filter(x => dupOf(x.s, x.r)).length;
+  const oosN = f.filter(({ s, r }) => cols.some(([k]) => oos(s, r, k))).length;
+
+  const head = [`<th><input type="checkbox" id="tAll" title="เลือก/ยกเลิกทั้งหมดที่แสดง" ${f.length && selN === f.length ? 'checked' : ''}></th>`, '<th>NO</th>'];
+  if (all_) head.push('<th>ซีต</th>');
+  head.push('<th>Date</th>', '<th>Record by</th>', '<th>Line</th>', '<th>pcs</th>', '<th>up/low</th>', '<th>ประเภท</th>');
+  cols.forEach(([, n]) => head.push(`<th>${n}</th>`));
+  head.push('<th>Appearance</th>', '<th>Result</th>', '<th>Remark</th>', '<th>รูป</th>', '<th></th>');
+  const span = head.length;
+
+  let lastD = null;
+  const body = f.map(({ s, r }, n) => {
+    let pre = '';
+    if (r.d !== lastD) {
+      lastD = r.d;
+      const grp = f.filter(x => x.r.d === r.d), gng = grp.filter(x => Charts.isNG(x.r)).length;
+      pre = `<tr><td class="dsum" colspan="${span}">📅 ${esc(r.d)} · ${grp.length} ชิ้น${gng ? ` · <span class="o">NG ${gng}</span>` : ''}</td></tr>`;
+    }
+    return pre + `<tr data-ti="${n}" class="${Charts.isNG(r) ? 'ngrow' : ''} ${tsel.has(r) ? 'selrow' : ''}"><td class="tk"><input type="checkbox" class="tsel" ${tsel.has(r) ? 'checked' : ''}></td><td class="no">${n + 1}</td>${all_ ? `<td>${esc(s.name)}</td>` : ''}
+<td>${tin('d', r)}</td><td>${tin('by', r)}</td><td>${tin('line', r, '', noLine(s))}</td><td>${tin('p', r, dupOf(s, r) ? 'dupc' : '')}</td>
+<td><select class="te" data-k="g"><option ${r.g === 'up' ? 'selected' : ''}>up</option><option ${r.g === 'low' ? 'selected' : ''}>low</option></select></td>
+<td><select class="te" data-k="ty">${tyOpts(r.ty)}</select></td>
+${cols.map(([k]) => `<td>${tin(k, r, (Charts.isOutlier(s, r, k) ? 'out ' : '') + (oos(s, r, k) ? 'oos' : ''))}</td>`).join('')}
+<td><select class="te ${r.ok === 'NG' ? 'ngc' : r.ok === 'OK' ? 'okc' : ''}" data-k="ok">${['', 'OK', 'NG'].map(o => `<option ${r.ok === o ? 'selected' : ''}>${o}</option>`).join('')}</select></td>
+<td><select class="te ${r.res === 'NG' ? 'ngc' : r.res === 'OK' ? 'okc' : ''}" data-k="res">${['', 'OK', 'NG'].map(o => `<option ${r.res === o ? 'selected' : ''}>${o}</option>`).join('')}</select></td>
+<td>${tin('rm', r)}</td><td>${thumb(r)}</td><td><button class="x" data-tdel="${n}" title="ลบแถว">✕</button></td></tr>`;
+  }).join('') || `<tr><td colspan="${span}" class="empty">ไม่มีข้อมูลตามตัวกรอง</td></tr>`;
+
   $('#view').innerHTML = `
-  <div class="head"><img class="logo" src="images/logo.png" alt="Siam Aisin"><div class="ttl"><h1>ตารางข้อมูลที่บันทึก</h1><div class="sn">${all_ ? 'ทุกซีต' : esc(sheet().name)}</div></div></div>
-  <div class="card"><div class="meta">
-    <label>ขอบเขต<select class="tf" data-t="scope"><option value="sheet" ${all_ ? '' : 'selected'}>ซีตนี้</option><option value="all" ${all_ ? 'selected' : ''}>ทุกซีต</option></select></label>
-    ${sel('d', 'วันที่', u('d'))}${sel('by', 'ผู้บันทึก', u('by'))}${sel('line', 'Line', u('line'))}
-    <label>up/low<select class="tf" data-t="g"><option value="">ทั้งหมด</option><option ${tf.g === 'up' ? 'selected' : ''}>up</option><option ${tf.g === 'low' ? 'selected' : ''}>low</option></select></label>
-    <label>ประเภท<select class="tf" data-t="ty"><option value="">ทั้งหมด</option>${TYPES.map(([k, n]) => `<option value="${k}" ${tf.ty === k ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
-    <label class="ck"><input type="checkbox" class="tf" data-t="ng" ${tf.ng ? 'checked' : ''}> เฉพาะ NG</label>
-    <label class="ck"><input type="checkbox" class="tf" data-t="rev" ${tf.rev ? 'checked' : ''}> ล่าสุดก่อน</label>
-    <button class="btn" id="btnTblXlsx">Export ตารางนี้ (Excel)</button>
-    <button class="btn danger" id="btnTDel" ${selN ? '' : 'disabled'}>🗑 ลบที่เลือก (${selN})</button>
-    <label>ใส่ Line ให้แถวที่ว่าง<input id="bulkLine" value="${esc(bulkLine)}" placeholder="เช่น Line 3"></label><button class="btn" id="btnBulkLine" title="ใส่ให้เฉพาะแถวที่ Line ว่าง · ซีต AS186/187 ข้ามให้อัตโนมัติ">ใส่ Line</button></div>
-    <div class="hint">แสดง ${f.length} จาก ${all.length} แถว · NG ${ngN} แถว${dupN ? ` · <b style="color:var(--ng)">pcs ซ้ำ ${dupN} แถว (ช่องแดง)</b>` : ''} · ช่องสีเหลือง = ค่าที่น่าจะพิมพ์ผิด · แก้ไขข้อมูล/Remark ได้ในตารางนี้โดยตรง (บันทึกอัตโนมัติ) · ติ๊กช่องหน้าแถวเพื่อเลือกหลายแถวแล้วกด "ลบที่เลือก" หรือกด ✕ เพื่อลบทีละแถว</div>
-    <div class="tw vt"><table id="vtbl"><thead><tr><th><input type="checkbox" id="tAll" title="เลือก/ยกเลิกทั้งหมดที่แสดง" ${f.length && selN === f.length ? 'checked' : ''}></th><th>NO</th>${all_ ? '<th>ซีต</th>' : ''}<th>Date</th><th>Record by</th><th>Line</th><th>pcs</th><th>up/low</th><th>ประเภท</th><th>Width</th><th>Length</th><th>Thickness</th><th>Appearance</th><th>Result</th><th>Remark</th><th>รูป</th><th></th></tr></thead><tbody>
-    ${f.map(({ s, r }, n) => `<tr data-ti="${n}" class="${Charts.isNG(r) ? 'ngrow' : ''} ${tsel.has(r) ? 'selrow' : ''}"><td class="tk"><input type="checkbox" class="tsel" ${tsel.has(r) ? 'checked' : ''}></td><td class="no">${n + 1}</td>${all_ ? `<td>${esc(s.name)}</td>` : ''}
-      <td>${tin('d', r)}</td><td>${tin('by', r)}</td><td>${tin('line', r, '', noLine(s))}</td><td>${tin('p', r, dupOf(s, r) ? 'dupc' : '')}</td>
-      <td><select class="te" data-k="g"><option ${r.g === 'up' ? 'selected' : ''}>up</option><option ${r.g === 'low' ? 'selected' : ''}>low</option></select></td>
-      <td><select class="te" data-k="ty">${tyOpts(r.ty)}</select></td>
-      ${['w', 'l', 't'].map(k => `<td>${tin(k, r, (Charts.isOutlier(s, r, k) ? 'out ' : '') + (oos(s, r, k) ? 'oos' : ''))}</td>`).join('')}
-      <td><select class="te ${r.ok === 'NG' ? 'ngc' : ''}" data-k="ok">${['', 'OK', 'NG'].map(o => `<option ${r.ok === o ? 'selected' : ''}>${o}</option>`).join('')}</select></td>
-      <td><select class="te ${r.res === 'NG' ? 'ngc' : ''}" data-k="res">${['', 'OK', 'NG'].map(o => `<option ${r.res === o ? 'selected' : ''}>${o}</option>`).join('')}</select></td>
-      <td>${tin('rm', r)}</td><td>${thumb(r)}</td><td><button class="x" data-tdel="${n}" title="ลบแถว">✕</button></td></tr>`).join('') || '<tr><td colspan="17" class="empty">ไม่มีข้อมูลตามตัวกรอง</td></tr>'}
-    </tbody></table></div></div>`;
+<div class="head"><img class="logo" src="images/logo.png" alt="Siam Aisin"><div class="ttl"><h1>ตารางข้อมูลที่บันทึก</h1><div class="sn">${all_ ? 'ทุกซีต' : esc(curS.name)}</div></div></div>
+<div class="card"><div class="meta">
+<label>ขอบเขต<select class="tf" data-t="scope"><option value="sheet" ${all_ ? '' : 'selected'}>ซีตนี้</option><option value="all" ${all_ ? 'selected' : ''}>ทุกซีต</option></select></label>
+${sel('d', 'วันที่', u('d'))}${sel('by', 'ผู้บันทึก', u('by'))}${sel('line', 'Line', u('line'))}
+<label>up/low<select class="tf" data-t="g"><option value="">ทั้งหมด</option><option ${tf.g === 'up' ? 'selected' : ''}>up</option><option ${tf.g === 'low' ? 'selected' : ''}>low</option></select></label>
+<label>ประเภท<select class="tf" data-t="ty"><option value="">ทั้งหมด</option>${TYPES.map(([k, n]) => `<option value="${k}" ${tf.ty === k ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+<label class="ck"><input type="checkbox" class="tf" data-t="ng" ${tf.ng ? 'checked' : ''}> เฉพาะ NG</label>
+<label class="ck"><input type="checkbox" class="tf" data-t="rev" ${tf.rev ? 'checked' : ''}> ล่าสุดก่อน</label>
+<button class="btn" id="btnTblXlsx">Export ตารางนี้ (Excel)</button>
+<button class="btn danger" id="btnTDel" ${selN ? '' : 'disabled'}>🗑 ลบที่เลือก (${selN})</button>
+<label>ใส่ Line ให้แถวที่ว่าง<input id="bulkLine" value="${esc(bulkLine)}" placeholder="เช่น Line 3"></label><button class="btn" id="btnBulkLine" title="ใส่ให้เฉพาะแถวที่ Line ว่าง · ซีต AS186/187 ข้ามให้อัตโนมัติ">ใส่ Line</button></div>
+<div class="todaybar">
+<span class="pill">แสดง <b>${f.length}</b> จาก <b>${all.length}</b> แถว</span>
+<span class="pill ${ngN ? 'ng' : ''}">NG <b>${ngN}</b></span>
+<span class="pill ${oosN ? 'ng' : ''}">หลุดสเปก <b>${oosN}</b></span>
+${dupN ? `<span class="pill ng">pcs ซ้ำ <b>${dupN}</b></span>` : ''}
+</div>
+<div class="hint">ช่องแดง = ค่าหลุดสเปก · ช่องเหลือง = ค่าที่น่าจะพิมพ์ผิด · แก้ข้อมูล/Remark ได้ในตารางนี้โดยตรง (บันทึกอัตโนมัติ) · ติ๊กช่องหน้าแถวเพื่อเลือกหลายแถวแล้วกด "ลบที่เลือก" หรือกด ✕ เพื่อลบทีละแถว</div>
+<div class="tw vt"><table id="vtbl"><thead><tr>${head.join('')}</tr></thead><tbody>
+${body}
+</tbody></table></div></div>`;
 }
 function exportView() {
   const { f } = viewRows();
@@ -306,8 +355,8 @@ document.addEventListener('change', e => {
     r[k] = ['p', 'w', 'l', 't'].includes(k) ? (t.value === '' ? null : +t.value) : (k === 'rm' ? (t.value.trim() || null) : t.value.trim());
     if ((k === 'p' || k === 'd') && dupOf(x.s, r)) { const o = dupOf(x.s, r); r[k] = old; alert(`ชิ้นที่ ${o.p} ของ ${o.g} วันที่ ${o.d} (${x.s.name}) มีอยู่แล้ว – เลขชิ้นซ้ำกันภายใน up หรือ low เดียวกันไม่ได้`); drawTable(); return; }
     save(); tr.classList.toggle('ngrow', Charts.isNG(r));
-    ['w', 'l', 't'].forEach(c => { const el = tr.querySelector(`[data-k="${c}"]`); el.classList.toggle('out', Charts.isOutlier(x.s, r, c)); el.classList.toggle('oos', oos(x.s, r, c)); });
-    ['ok', 'res'].forEach(c => tr.querySelector(`[data-k="${c}"]`).classList.toggle('ngc', r[c] === 'NG'));
+    ['w', 'l', 't'].forEach(c => { const el = tr.querySelector(`[data-k="${c}"]`); if (!el) return; el.classList.toggle('out', Charts.isOutlier(x.s, r, c)); el.classList.toggle('oos', oos(x.s, r, c)); });
+    ['ok', 'res'].forEach(c => { const el = tr.querySelector(`[data-k="${c}"]`); if (!el) return; el.classList.toggle('ngc', r[c] === 'NG'); el.classList.toggle('okc', r[c] === 'OK'); });
     return;
   }
   if (t.classList.contains('tf')) { tf[t.dataset.t] = t.type === 'checkbox' ? t.checked : t.value; drawTable(); return; }
@@ -364,6 +413,6 @@ window.addEventListener('online', () => Store.push());
 Store.pull(st).then(d => {
   if (!d) return;
   const old = new Map(st.sheets.map(s => [s.name, s]));
-  d.sheets.forEach(s => { const o = old.get(s.name); if (o) s.draft = o.draft; });   // ร่างที่ยังไม่บันทึกเป็นของแต่ละเครื่อง
+  d.sheets.forEach(s => { const o = old.get(s.name); if (o) s.draft = o.draft; }); // ร่างที่ยังไม่บันทึกเป็นของแต่ละเครื่อง
   st.sheets = d.sheets; Store.ids(st); Store.local(st); if (cur >= st.sheets.length) cur = 0; Store.onMerge();
 });
