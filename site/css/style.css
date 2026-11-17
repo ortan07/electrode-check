@@ -1,5 +1,5 @@
-:root{--bg:#f6f7f9;--card:#fff;--tx:#1b2430;--mu:#657080;--bd:#dde1e7;--ac:#2563eb;--ng:#dc2626;--lim:#d97706;--grid:#e8ebef;--warnbg:#fff4e0;color-scheme:light}
-@media (prefers-color-scheme:dark){:root{--bg:#12161c;--card:#1a2029;--tx:#e8ecf1;--mu:#93a0b2;--bd:#2c3644;--ac:#60a5fa;--ng:#f87171;--lim:#fbbf24;--grid:#2a3340;--warnbg:#3a2f14;color-scheme:dark}}
+:root{--bg:#f6f7f9;--card:#fff;--tx:#1b2430;--mu:#657080;--bd:#dde1e7;--ac:#2563eb;--ng:#dc2626;--lim:#d97706;--grid:#e8ebef;--warnbg:#fff4e0;--ok:#16a34a;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#12161c;--card:#1a2029;--tx:#e8ecf1;--mu:#93a0b2;--bd:#2c3644;--ac:#60a5fa;--ng:#f87171;--lim:#fbbf24;--grid:#2a3340;--warnbg:#3a2f14;--ok:#4ade80;color-scheme:dark}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,-apple-system,"Segoe UI","Noto Sans Thai",Tahoma,sans-serif}
 .bar{max-width:1200px;margin:auto;padding:12px 16px 4px;display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center}
@@ -80,45 +80,45 @@ summary{cursor:pointer;font-weight:600;font-size:14px}details .tw{margin-top:8px
 
 /* ---------- มือถือ ---------- */
 @media (max-width:640px){
-  body{font-size:16px}
-  .bar{padding:8px 12px 0}
-  .acts .btn{padding:8px 10px}
-  nav button{padding:8px 14px}
-  .modes{padding:0 12px 4px}.modes button{flex:1;padding:10px 6px}
-  main{padding:8px 10px 24px}
-  .logo{height:40px}.appr{display:none}
-  .head{gap:10px}.head h1{font-size:17px;min-width:0}
-  .head .sum{margin-left:0;justify-content:flex-start}
-  .card{padding:10px}
-  input,select{font-size:16px}
-  .btn,.tg{min-height:44px}
-  .meta{gap:8px}.meta label{flex:1 1 140px}.meta input,.meta select{width:100%}
-  .chips{gap:10px}
+body{font-size:16px}
+.bar{padding:8px 12px 0}
+.acts .btn{padding:8px 10px}
+nav button{padding:8px 14px}
+.modes{padding:0 12px 4px}.modes button{flex:1;padding:10px 6px}
+main{padding:8px 10px 24px}
+.logo{height:40px}.appr{display:none}
+.head{gap:10px}.head h1{font-size:17px;min-width:0}
+.head .sum{margin-left:0;justify-content:flex-start}
+.card{padding:10px}
+input,select{font-size:16px}
+.btn,.tg{min-height:44px}
+.meta{gap:8px}.meta label{flex:1 1 140px}.meta input,.meta select{width:100%}
+.chips{gap:10px}
 
-  /* ฟอร์มคีย์: 1 ชิ้น = 1 การ์ด */
-  #draft{min-width:0;max-width:none;width:100%}
-  #draft thead{display:none}
-  #draft tbody tr{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px;margin-bottom:10px;border:1px solid var(--bd);border-radius:10px;background:var(--bg)}
-  #draft td{display:block;padding:0;min-width:0}
-  #draft td::before{content:attr(data-l);display:block;font-size:11px;color:var(--mu);margin-bottom:2px}
-  #draft td.pn{grid-column:1/-1;width:auto;text-align:left;font-size:15px}
-  #draft td.pn::before{display:inline;margin-right:6px}
-  #draft td.rmc,#draft td.phc,#draft td.dlc{grid-column:1/-1}
-  #draft td.dlc::before{display:none}
-  #draft td.dlc{text-align:right}
-  #draft td.phc:empty{display:none}
-  #draft td input.de,#draft td input.dr,#draft td select.dt{width:100%;min-width:0;font-size:18px;padding:10px}
-  #draft td .tg{width:100%}
-  #draft td.phc .tg{width:auto}
-  .x{min-width:44px;min-height:44px;font-size:18px}
+/* ฟอร์มคีย์: 1 ชิ้น = 1 การ์ด */
+#draft{min-width:0;max-width:none;width:100%}
+#draft thead{display:none}
+#draft tbody tr{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px;margin-bottom:10px;border:1px solid var(--bd);border-radius:10px;background:var(--bg)}
+#draft td{display:block;padding:0;min-width:0}
+#draft td::before{content:attr(data-l);display:block;font-size:11px;color:var(--mu);margin-bottom:2px}
+#draft td.pn{grid-column:1/-1;width:auto;text-align:left;font-size:15px}
+#draft td.pn::before{display:inline;margin-right:6px}
+#draft td.rmc,#draft td.phc,#draft td.dlc{grid-column:1/-1}
+#draft td.dlc::before{display:none}
+#draft td.dlc{text-align:right}
+#draft td.phc:empty{display:none}
+#draft td input.de,#draft td input.dr,#draft td select.dt{width:100%;min-width:0;font-size:18px;padding:10px}
+#draft td .tg{width:100%}
+#draft td.phc .tg{width:auto}
+.x{min-width:44px;min-height:44px;font-size:18px}
 
-  /* ปุ่ม Update ติดล่างจอ */
-  #entry>.lm{position:sticky;bottom:0;z-index:5;background:var(--card);padding:8px 0;margin-top:4px;border-top:1px solid var(--bd)}
-  #entry>.lm .btn{flex:1}
+/* ปุ่ม Update ติดล่างจอ */
+#entry>.lm{position:sticky;bottom:0;z-index:5;background:var(--card);padding:8px 0;margin-top:4px;border-top:1px solid var(--bd)}
+#entry>.lm .btn{flex:1}
 
-  .lm input{width:84px}
-  .spect input.sp{width:70px;font-size:16px}
-  .vbar{gap:4px;padding:0 6px}.vbar .btn{padding:6px 10px;min-height:36px}
+.lm input{width:84px}
+.spect input.sp{width:70px;font-size:16px}
+.vbar{gap:4px;padding:0 6px}.vbar .btn{padding:6px 10px;min-height:36px}
 }
 
 /* ---------- เลือกแถวในตารางข้อมูล ---------- */
@@ -130,3 +130,99 @@ summary{cursor:pointer;font-weight:600;font-size:14px}details .tw{margin-top:8px
 
 /* pcs ซ้ำ */
 input.dupc{background:rgba(239,68,68,.30)!important;color:var(--ng)!important;font-weight:700;border-color:var(--ng)!important}
+
+/* =======================================================================
+   ปรับใหม่ 11/2026 – ทำให้กราฟและตารางอ่านง่ายขึ้น + คีย์ข้อมูลสะดวกขึ้น
+   (ส่วนนี้อยู่ท้ายไฟล์เพื่อให้ทับกฎเดิมด้านบนได้)
+   ======================================================================= */
+
+/* ---------- แถบควบคุมกราฟ ---------- */
+.chctl{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:14px 0 10px;font-size:12px;color:var(--mu)}
+.chctl .lbl{font-weight:600;letter-spacing:.02em}
+.chctl .tgl{background:var(--card);color:var(--mu);border:1px solid var(--bd);border-radius:999px;padding:5px 12px;cursor:pointer;font:inherit;font-size:12px;line-height:1.3}
+.chctl .tgl:hover{border-color:var(--ac);color:var(--tx)}
+.chctl .tgl.on{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:600}
+.chctl .sep{width:1px;height:20px;background:var(--bd);margin:0 4px}
+.chctl .note{margin-left:auto}
+
+/* ---------- การ์ดกราฟ ---------- */
+.cv{position:relative;height:300px}
+.chd{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin:0 0 6px}
+.chd h3{margin:0;font-size:14px}
+.spechip{font-size:11px;font-weight:700;color:var(--lim);border:1px solid var(--lim);border-radius:999px;padding:1px 9px;white-space:nowrap}
+.spechip.none{color:var(--mu);border-color:var(--bd);font-weight:400}
+.chsum{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--mu);margin:0 0 8px}
+.chsum b{color:var(--tx);font-variant-numeric:tabular-nums}
+.chsum .bad{color:var(--ng);font-weight:700}
+.chsum .good{color:var(--ok);font-weight:700}
+
+/* ---------- ชิปวัน (แทน legend เดิม) ---------- */
+.days{display:flex;flex-direction:row;flex-wrap:wrap;gap:6px;margin-top:10px;font-size:12px}
+.daych{display:inline-flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--bd);border-radius:999px;padding:4px 11px;font:inherit;font-size:11.5px;color:var(--tx);cursor:pointer;line-height:1.5;white-space:nowrap}
+.daych:hover{border-color:var(--ac)}
+.daych i{width:9px;height:9px;border-radius:50%;flex:none}
+.daych .n{color:var(--mu);font-variant-numeric:tabular-nums}
+.daych .o{color:var(--ng);font-weight:700}
+.daych.off{opacity:.42;text-decoration:line-through}
+.dayhint{font-size:11.5px;color:var(--mu);margin-top:6px}
+
+/* ---------- ตารางข้อมูล ---------- */
+#vtbl{min-width:0;font-size:13.5px}
+#vtbl thead th{padding:9px 8px;font-size:11.5px;letter-spacing:.02em;background:var(--card);border-bottom:2px solid var(--bd)}
+#vtbl tbody td{padding:3px 8px;border-bottom:1px solid var(--grid)}
+#vtbl tbody tr:nth-child(even) td{background:color-mix(in srgb,var(--mu) 8%,transparent)}
+#vtbl tbody tr:hover td{background:color-mix(in srgb,var(--ac) 12%,transparent)}
+#vtbl tbody tr.dgrp td{border-top:2px solid var(--bd)}
+#vtbl tbody tr.ngrow td{background:color-mix(in srgb,var(--ng) 16%,transparent)}
+#vtbl tbody tr.selrow td{background:color-mix(in srgb,var(--ac) 20%,transparent)}
+#vtbl tbody td.no{color:var(--mu);font-variant-numeric:tabular-nums}
+#vtbl tbody td input.te[type=number]{text-align:right;font-variant-numeric:tabular-nums}
+#vtbl tbody td select.te{border:1px solid transparent;border-radius:999px;padding:3px 10px;text-align:center;font-size:12px}
+#vtbl tbody td select.te:hover{border-color:var(--bd)}
+#vtbl tbody td select.te.ngc{background:color-mix(in srgb,var(--ng) 22%,transparent);border-color:var(--ng);color:var(--ng);font-weight:700}
+#vtbl tbody td select.te.okc{color:var(--ok)}
+#vtbl tbody td input.te.oos{border-radius:6px}
+#vtbl .dsum{font-size:12px;color:var(--mu);text-align:left;padding:7px 8px;background:color-mix(in srgb,var(--ac) 7%,transparent);border-top:2px solid var(--bd);font-weight:600}
+#vtbl .dsum .o{color:var(--ng)}
+
+/* ---------- ฟอร์มคีย์ข้อมูล (จอใหญ่) ---------- */
+@media (min-width:641px){
+#draft{min-width:0;max-width:820px}
+#draft thead th{padding:6px 6px;font-size:11.5px;vertical-align:bottom}
+#draft thead th .spsub{display:block;margin-top:2px;font-size:11px;font-weight:700;color:var(--lim);white-space:nowrap}
+#draft tbody td{padding:5px 4px}
+#draft tbody tr+tr td{border-top:1px solid var(--grid)}
+#draft tbody td input.de{min-width:118px;font-size:17px;padding:9px 11px;text-align:right;font-variant-numeric:tabular-nums}
+#draft tbody td input.de::placeholder{font-size:12.5px;opacity:.5}
+#draft tbody td .tg{min-width:62px;padding:8px 10px}
+#draft tbody td select.dt{padding:7px 6px}
+#entry>.lm{position:sticky;bottom:0;z-index:5;background:var(--card);padding:10px 0 4px;margin-top:6px;border-top:1px solid var(--bd)}
+}
+.todaybar{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:12px;color:var(--mu);margin:2px 0 10px}
+.todaybar .pill{background:var(--bg);border:1px solid var(--bd);border-radius:999px;padding:3px 11px}
+.todaybar .pill b{color:var(--tx);font-variant-numeric:tabular-nums}
+.todaybar .pill.ng{border-color:var(--ng);color:var(--ng)}
+.pvt{font-size:12.5px}
+.pvt th{font-size:11px}
+
+@media (max-width:640px){
+.cv{height:260px}
+.chctl{gap:5px}
+.chctl .tgl{padding:7px 11px}
+.chctl .note{margin-left:0;width:100%}
+#vtbl{font-size:13px}
+#vtbl tbody td{padding:5px 7px}
+}
+.chhint{font-size:11.5px;color:var(--mu);margin:-4px 0 12px;line-height:1.7}
+
+/* ---------- การ์ดสรุป NG ---------- */
+.ngcard{border-color:var(--ng)}
+.ngcv{height:210px}
+.okbox{padding:20px;text-align:center;color:var(--ok);border:1px dashed var(--ok);border-radius:10px;font-weight:600}
+.ngwrap{max-height:320px;overflow:auto;margin-top:10px}
+.ngtbl{min-width:0;font-size:12.5px}
+.ngtbl th,.ngtbl td{padding:5px 10px;text-align:center;border-bottom:1px solid var(--grid);white-space:nowrap}
+.ngtbl th{font-size:11.5px;position:sticky;top:0;background:var(--card);z-index:1}
+.ngtbl td.oosc{color:var(--ng);font-weight:700;background:color-mix(in srgb,var(--ng) 18%,transparent);border-radius:6px}
+.ngtbl td.cause{color:var(--ng);font-weight:600}
+.ngtbl .thumb{width:40px;height:40px}
