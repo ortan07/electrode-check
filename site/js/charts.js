@@ -74,6 +74,44 @@ const Charts = {
   },
 
   /* ---------- การ์ดสรุป NG (กราฟแท่งรายวัน + รายการทีละชิ้น) ---------- */
+     /* ---------- กล่องดูข้อมูลรายวัน (เปิดจากการคลิกกราฟ) ---------- */
+  dayBox() {
+    let b = document.getElementById('daybox');
+    if (!b) {
+      b = document.createElement('div'); b.id = 'daybox'; b.hidden = true;
+      b.innerHTML = '<div class="dbin"><div class="dbh"><h3></h3><button class="btn" data-db="x">ปิด ✕</button></div><div class="dbb"></div></div>';
+      document.body.appendChild(b);
+      b.addEventListener('click', e => { if (e.target.dataset.db === 'x' || e.target === b) b.hidden = true; });
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') b.hidden = true; });
+    }
+    return b;
+  },
+  showDay(d, ty, g) {
+    const s = this._s; if (!s) return;
+    const gn = (this.GROUPS.find(x => x[0] === g) || [, g])[1];
+    const tn = (this.TYPES.find(x => x[0] === ty) || [, ty])[1];
+    const rows = s.rows.filter(r => r.d === d && this.rty(r) === ty && r.g === g)
+      .sort((x, y) => (+x.p || 0) - (+y.p || 0));
+    const mk = this.METRICS.filter(([k]) => rows.some(r => this.num(r[k])));
+    const sum = mk.map(([k]) => {
+      const v = rows.filter(r => this.num(r[k])).map(r => r[k]);
+      if (!v.length) return '';
+      const mean = v.reduce((x, y) => x + y, 0) / v.length;
+      const out = rows.filter(r => this.oosOf(s, r, k)).length;
+      return `<span>${this.SHORT[k]} x̄ <b>${this.fmt(mean)}</b>${out ? ` · <span class="bad">นอกสเปก ${out}</span>` : ''}</span>`;
+    }).join('') + `<span>NG <b>${rows.filter(r => this.isNG(r)).length}</b></span>`;
+    const body = rows.map(r => `<tr class="${this.isNG(r) ? 'ngrow' : ''}"><td>${r.p}</td><td>${this.rty(r) === 'new' ? 'New' : 'Wire Cut'}</td>`
+      + mk.map(([k]) => `<td class="${this.oosOf(s, r, k) ? 'oosc' : ''}">${this.num(r[k]) ? r[k] : '-'}</td>`).join('')
+      + `<td class="${r.ok === 'NG' ? 'cause' : ''}">${this.esc(r.ok || '')}</td><td class="${r.res === 'NG' ? 'cause' : ''}">${this.esc(r.res || '')}</td>`
+      + `<td>${this.esc(r.by || '')}</td><td>${this.esc(r.rm || '')}</td><td>${this.thumbOf(r)}</td></tr>`).join('');
+    const b = this.dayBox();
+    b.querySelector('h3').textContent = `${d} · ${tn} · ${gn} · ${rows.length} ชิ้น`;
+    b.querySelector('.dbb').innerHTML = `<div class="dbsum">${sum}</div>`
+      + `<div class="tw"><table class="ngtbl"><thead><tr><th>ชิ้นที่</th><th>ประเภท</th>`
+      + mk.map(([, n]) => `<th>${n.split(' ')[0]}</th>`).join('')
+      + `<th>Appearance</th><th>Result</th><th>ผู้บันทึก</th><th>Remark</th><th>รูป</th></tr></thead><tbody>${body}</tbody></table></div>`;
+    b.hidden = false;
+  },
   ngCard(s, vis) {
     const rows = this.ngRows(s, vis);
     const head = `<div class="card ngcard"><div class="chd"><h3>🔴 สรุป NG / ค่าหลุดสเปก</h3><span class="spechip ${rows.length ? '' : 'none'}">${rows.length} ชิ้น ในช่วงวันที่ที่เลือก</span></div>`;
