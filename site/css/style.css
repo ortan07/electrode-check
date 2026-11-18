@@ -228,3 +228,13 @@ input.dupc{background:rgba(239,68,68,.30)!important;color:var(--ng)!important;fo
 .ngtbl td.oosc{color:var(--ng);font-weight:700;background:color-mix(in srgb,var(--ng) 18%,transparent);border-radius:6px}
 .ngtbl td.cause{color:var(--ng);font-weight:600}
 .ngtbl .thumb{width:40px;height:40px}
+
+/* กล่องดูข้อมูลรายวัน (เปิดจากการคลิกกราฟ) */
+#daybox{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:16px}
+#daybox[hidden]{display:none}
+#daybox .dbin{background:var(--card);border-radius:12px;max-width:900px;width:100%;max-height:88vh;display:flex;flex-direction:column;overflow:hidden}
+#daybox .dbh{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--grid)}
+#daybox .dbh h3{margin:0;font-size:15px;flex:1}
+#daybox .dbb{padding:12px 16px;overflow:auto}
+#daybox .dbsum{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;margin-bottom:10px;color:var(--mu)}
+#daybox .ngtbl tr.ngrow td{background:color-mix(in srgb,var(--ng) 8%,transparent)}
