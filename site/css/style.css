@@ -34,7 +34,7 @@ select.ngc{color:var(--ng);font-weight:700}
 .lm{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--mu);margin-top:8px;flex-wrap:wrap}
 .lm input{width:72px}
 h2{font-size:15px;margin:18px 0 8px;color:var(--mu);text-transform:uppercase;letter-spacing:.04em}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:12px}
+.grid{display:grid;grid-template-columns:1fr;gap:12px}
 .cv{position:relative;height:240px}
 .st{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--mu);margin-top:8px}
 .warn{background:var(--warnbg);border:1px solid var(--lim);border-radius:10px;padding:8px 12px;margin:12px 0;font-size:13px}
@@ -45,6 +45,8 @@ h2{font-size:15px;margin:18px 0 8px;color:var(--mu);text-transform:uppercase;let
 .pn{width:56px;text-align:center;font-weight:700;color:var(--mu)}
 .tg{border:1px solid var(--bd);background:var(--bg);color:var(--tx);border-radius:6px;padding:6px 10px;cursor:pointer;font:inherit;font-size:13px}
 .tg.ngon{background:var(--ng);border-color:var(--ng);color:#fff}
+.tg.lockng{opacity:.55;border-style:dashed;cursor:not-allowed}
+select.warnc{background:var(--warnbg);border-color:var(--lim)}
 .btn.primary{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:600;padding:8px 16px}
 .btn.lockbtn.on{border-color:var(--lim);color:var(--lim)}
 input:disabled{opacity:.65;cursor:not-allowed}
@@ -146,7 +148,7 @@ input.dupc{background:rgba(239,68,68,.30)!important;color:var(--ng)!important;fo
 .chctl .note{margin-left:auto}
 
 /* ---------- การ์ดกราฟ ---------- */
-.cv{position:relative;height:300px}
+.cv{position:relative;height:360px}
 .chd{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin:0 0 6px}
 .chd h3{margin:0;font-size:14px}
 .spechip{font-size:11px;font-weight:700;color:var(--lim);border:1px solid var(--lim);border-radius:999px;padding:1px 9px;white-space:nowrap}
@@ -206,7 +208,7 @@ input.dupc{background:rgba(239,68,68,.30)!important;color:var(--ng)!important;fo
 .pvt th{font-size:11px}
 
 @media (max-width:640px){
-.cv{height:260px}
+.cv{height:280px}
 .chctl{gap:5px}
 .chctl .tgl{padding:7px 11px}
 .chctl .note{margin-left:0;width:100%}
