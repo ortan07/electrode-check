@@ -83,7 +83,7 @@ const Charts = {
       const why = [];
       mk.forEach(([k]) => { if (this.oosOf(s, r, k)) why.push(`${this.SHORT[k]} หลุดสเปก`); });
       if (r.ok === 'NG') why.push('Appearance NG');
-      if (r.res === 'NG' && !why.length) why.push('Result NG (ค่าไม่หลุดสเปก – ควรแก้เป็น OK)');
+      if (r.res === 'NG' && !why.length) why.push('Result NG แต่ค่าอยู่ในสเปก (ข้อมูลเก่า – กดปุ่มซ่อม Result ได้)');
       return `<tr><td>${this.esc(r.d)}</td><td>${r.p}</td><td>${r.g}</td><td>${this.rty(r) === 'new' ? 'New' : 'Wire Cut'}</td>`
         + mk.map(([k]) => `<td class="${this.oosOf(s, r, k) ? 'oosc' : ''}">${this.num(r[k]) ? r[k] : '-'}</td>`).join('')
         + `<td class="cause">${why.join(' · ')}</td><td>${this.esc(r.by || '')}</td><td>${this.esc(r.rm || '')}</td><td>${this.thumbOf(r)}</td></tr>`;
@@ -105,9 +105,8 @@ const Charts = {
       data: {
         labels: days,
         datasets: [
-          { label: 'ค่าหลุดสเปก', data: days.map(d => cnt(d, r => this.METRICS.some(([k]) => this.oosOf(s, r, k)))), backgroundColor: ng },
-          { label: 'Appearance NG', data: days.map(d => cnt(d, r => r.ok === 'NG')), backgroundColor: lim },
-          { label: 'Result NG', data: days.map(d => cnt(d, r => r.res === 'NG')), backgroundColor: '#6366f1' }
+          { label: 'ค่าหลุดสเปก (= Result NG)', data: days.map(d => cnt(d, r => this.METRICS.some(([k]) => this.oosOf(s, r, k)) || r.res === 'NG')), backgroundColor: ng },
+          { label: 'Appearance NG', data: days.map(d => cnt(d, r => r.ok === 'NG')), backgroundColor: lim }
         ]
       },
       options: {
