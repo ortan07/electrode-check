@@ -39,16 +39,14 @@ const oos = (s, r, k) => {
   return (a !== '' && Charts.num(+a) && v < +a - E) || (b !== '' && Charts.num(+b) && v > +b + E);
 };
 const oosAny = (s, r) => nk(s).some(k => oos(s, r, k));
-/* Result = NG ได้ก็ต่อเมื่อมีสาเหตุจริง: ค่าหลุดสเปก หรือ Appearance = NG
-   (ถ้าช่องนั้นยังไม่ได้ใส่ LSL/USL ไว้ ถือว่าตัดสินไม่ได้ จึงยังปล่อยให้กดเองได้) */
+/* Result NG = ค่าหลุดสเปก (เรื่องเดียวกัน) → คิดให้อัตโนมัติจากค่าที่วัด กดเองไม่ได้
+   Appearance NG เป็นคนละเรื่อง (ลักษณะภายนอก) ไม่ไปยุ่งกับ Result */
 const hasSpec = (s, r, ks) => ks.some(k => { const [a, b] = Charts.getLim(s, Charts.key(Charts.rty(r), r.g), k); return a !== '' || b !== ''; });
-const canNG = (s, r) => !hasSpec(s, r, nk(s)) || oosAny(s, r) || !!r.ng;                                          // แถวที่กำลังคีย์
-const canNGrow = (s, r) => !hasSpec(s, r, FIELDS.map(f => f[0])) || FIELDS.some(([k]) => oos(s, r, k)) || r.ok === 'NG';  // แถวที่บันทึกแล้ว
-const NG_BLOCK = 'ค่าที่วัดไม่หลุดสเปก และ Appearance = OK → ตั้ง Result = NG ไม่ได้\n(ถ้าชิ้นนี้เสียจริง ให้กด Appearance = NG หรือแก้ค่าที่วัดให้ถูกก่อน)';
-const applySpec = (s, r) => {
-  if (!canNG(s, r)) { r.rn = false; r.manual = false; return; } // ไม่มีสาเหตุ → บังคับกลับเป็น OK
-  if (!r.manual) r.rn = oosAny(s, r);                           // หลุดขนาด → NG อัตโนมัติ (ถ้าผู้ใช้กดสลับเองแล้ว จะไม่ทับ)
-};
+const oosAnyRow = (s, r) => FIELDS.some(([k]) => oos(s, r, k));            // แถวที่บันทึกแล้ว (ดูทุกช่องที่มีค่า)
+const resAuto = (s, r) => (oosAnyRow(s, r) ? 'NG' : 'OK');                 // Result ที่ควรจะเป็นตามค่าที่วัด
+const resBad = (s, r) => hasSpec(s, r, FIELDS.map(f => f[0])) && r.res !== resAuto(s, r); // ไม่ตรงกับค่าที่วัด
+const NG_BLOCK = 'Result = ค่าหลุดสเปก (เรื่องเดียวกัน) จึงตั้งเองไม่ได้\nค่าที่วัดอยู่ในสเปก → Result ต้องเป็น OK\n(ถ้าชิ้นนี้เสียจากลักษณะภายนอก ให้ใช้ Appearance = NG)';
+const applySpec = (s, r) => { r.rn = oosAny(s, r); };                      // หลุดสเปก = NG, ไม่หลุด = OK เสมอ
 /* ช่วงสเปกของชิ้นที่กำลังคีย์ (ไว้โชว์เป็น placeholder ให้คนคีย์รู้ว่าค่าควรอยู่เท่าไร) */
 const spRange = (s, r, k) => {
   const [a, b] = Charts.getLim(s, Charts.key(Charts.rty(r), r.g), k);
@@ -56,13 +54,8 @@ const spRange = (s, r, k) => {
 };
 function paintRow(tr, s, r) {
   tr.querySelectorAll('.de').forEach(el => el.classList.toggle('oos', oos(s, r, el.dataset.k)));
-  const b = tr.querySelector('[data-act="rn"]');
-  if (b) {
-    b.textContent = r.rn ? 'NG' : 'OK';
-    b.classList.toggle('ngon', !!r.rn);
-    b.classList.toggle('lockng', !canNG(s, r));
-    b.title = canNG(s, r) ? 'กดเพื่อสลับ OK/NG' : NG_BLOCK;
-  }
+  const b = tr.querySelector('[data-res]');
+  if (b) { b.textContent = r.rn ? 'NG' : 'OK'; b.classList.toggle('ngon', !!r.rn); }
 }
 
 /* pcs นับแยกกันระหว่าง up และ low (สลับเป็น low แล้วเริ่มนับใหม่) – ห้ามซ้ำภายใน up หรือ low เดียวกัน ในวันเดียวกันของซีตเดียวกัน */
@@ -120,14 +113,14 @@ ${s.draft.map((r, i) => `<tr data-i="${i}"><td class="pn" data-l="ชิ้น�
 <td data-l="ประเภท"><select class="dt" tabindex="-1">${tyOpts(r.ty)}</select></td>
 ${cols.map(([k, n]) => { const rg = spRange(s, r, k); return `<td data-l="${n}${rg ? ` (${rg})` : ''}"><input class="de ${oos(s, r, k) ? 'oos' : ''}" data-k="${k}" type="number" step="any" inputmode="decimal" enterkeyhint="next" placeholder="${rg || n}" title="${rg ? `${n} ต้องอยู่ระหว่าง ${rg}` : n}" value="${esc(r[k])}"></td>`; }).join('')}
 <td data-l="Appearance"><button class="tg ${r.ng ? 'ngon' : ''}" tabindex="-1" data-act="ng">${r.ng ? 'NG' : 'OK'}</button></td>
-<td data-l="Result"><button class="tg ${r.rn ? 'ngon' : ''} ${canNG(s, r) ? '' : 'lockng'}" tabindex="-1" data-act="rn" title="${canNG(s, r) ? 'กดเพื่อสลับ OK/NG' : NG_BLOCK}">${r.rn ? 'NG' : 'OK'}</button></td>
+<td data-l="Result"><span class="tg auto ${r.rn ? 'ngon' : ''}" data-res title="Result = ค่าหลุดสเปก คิดให้อัตโนมัติจากค่าที่วัด">${r.rn ? 'NG' : 'OK'}</span></td>
 <td class="rmc" data-l="Remark"><input class="dr" data-k="rm" type="text" placeholder="Remark" value="${esc(r.rm)}"></td>
 <td class="phc" data-l="รูป NG (ถ่ายตอน Appearance = NG)">${r.ng ? photoCell(r) : ''}</td>
 <td class="dlc"><button class="x" tabindex="-1" data-act="del">✕</button></td></tr>`).join('')}
 </tbody></table></div>
 <div class="lm"><button class="btn" id="btnAdd">＋ ชิ้นถัดไป</button>
 <button class="btn primary" id="btnUpdate">Update ▶ แสดงกราฟ</button><span id="msg"></span></div>
-<div class="hint">พิมพ์ค่าแล้วกด Enter เพื่อไปช่องถัดไป / ชิ้นถัดไปอัตโนมัติ · กดปุ่ม up/low และ OK/NG เพื่อสลับ · ค่าที่หลุดสเปกช่องจะเป็นสีแดงและตั้ง Result = NG ให้เอง · ถ้าค่าไม่หลุดสเปกและ Appearance = OK จะตั้ง Result = NG ไม่ได้ · วัดครบแล้วกด Update</div>`;
+<div class="hint">พิมพ์ค่าแล้วกด Enter เพื่อไปช่องถัดไป / ชิ้นถัดไปอัตโนมัติ · กดปุ่ม up/low และ OK/NG เพื่อสลับ · ค่าที่หลุดสเปกช่องจะเป็นสีแดงและตั้ง Result = NG ให้เอง (Result = ค่าหลุดสเปก เรื่องเดียวกัน กดเองไม่ได้) · Appearance NG ใช้กับตำหนิที่มองเห็น · วัดครบแล้วกด Update</div>`;
 }
 function say(t) { const m = $('#msg'); if (m) m.textContent = t; }
 function focusPiece(i, k) {
@@ -142,9 +135,7 @@ function commit() {
   if (!st.by.trim()) return say('ใส่ชื่อผู้บันทึกก่อน');
   const rows = s.draft.filter(r => keys.some(k => Charts.num(r[k])));
   if (!rows.length) return say('ยังไม่มีค่าที่กรอก');
-  rows.forEach(r => { if (!canNG(s, r)) { r.rn = false; r.manual = false; } else if (!r.manual && oosAny(s, r)) r.rn = true; });
-  const manOK = rows.map((r, i) => (r.manual && !r.rn && oosAny(s, r) ? i + 1 : 0)).filter(Boolean);
-  if (manOK.length && !confirm(`ชิ้นที่ ${manOK.join(', ')} มีค่าหลุดขนาด แต่ Result ถูกตั้งเป็น OK\n\nยืนยันบันทึกแบบนี้ไหม?`)) return;
+  rows.forEach(r => { r.rn = oosAny(s, r); });
   const bad = [];
   rows.forEach((r, i) => keys.forEach(k => {
     if (!Charts.num(r[k])) return;
@@ -163,8 +154,10 @@ function commit() {
 /* ---------- ข้อมูลที่บันทึกแล้ว (แก้/ลบได้) ---------- */
 function drawSaved() {
   const s = sheet(), inp = (k, r) => `<input data-k="${k}" type="${k === 'd' || k === 'by' || k === 'line' || k === 'rm' ? 'text' : 'number'}" step="any" value="${esc(r[k])}">`;
-  $('#savedSum').textContent = `ข้อมูลที่บันทึกแล้ว (${s.rows.length} ชิ้น) – ดู/แก้/ลบ`;
-  $('#saved').innerHTML = `<table id="tbl"><thead><tr><th>Date</th><th>Record by</th><th>Line</th><th>pcs</th><th>up/low</th><th>ประเภท</th><th>Width</th><th>Length</th><th>Thickness</th><th>Appearance</th><th>Result</th><th>Remark</th><th>รูป</th><th></th></tr></thead><tbody>
+  const nbad = s.rows.filter(r => resBad(s, r)).length;
+  $('#savedSum').textContent = `ข้อมูลที่บันทึกแล้ว (${s.rows.length} ชิ้น) – ดู/แก้/ลบ` + (nbad ? ` · ⚠ Result ไม่ตรงกับค่าที่วัด ${nbad} แถว` : '');
+  $('#saved').innerHTML = (nbad ? `<div class="warn">⚠ มี ${nbad} แถวที่ Result ไม่ตรงกับค่าที่วัด (เช่น ตั้ง NG ไว้ทั้งที่ค่าอยู่ในสเปก) <button class="btn" id="btnFixRes">ซ่อม Result ให้ตรงกับค่าที่วัด (${nbad} แถว)</button></div>` : '')
+    + `<table id="tbl"><thead><tr><th>Date</th><th>Record by</th><th>Line</th><th>pcs</th><th>up/low</th><th>ประเภท</th><th>Width</th><th>Length</th><th>Thickness</th><th>Appearance</th><th>Result</th><th>Remark</th><th>รูป</th><th></th></tr></thead><tbody>
 ${s.rows.map((r, i) => `<tr data-i="${i}"><td>${inp('d', r)}</td><td>${inp('by', r)}</td><td>${inp('line', r)}</td><td>${inp('p', r)}</td>
 <td><select data-k="g"><option ${r.g === 'up' ? 'selected' : ''}>up</option><option ${r.g === 'low' ? 'selected' : ''}>low</option></select></td>
 <td><select data-k="ty">${tyOpts(r.ty)}</select></td>
@@ -184,9 +177,9 @@ function flag() {
     tr.querySelector('[data-k="ok"]').classList.toggle('ngc', r.ok === 'NG');
     const re = tr.querySelector('[data-k="res"]');
     re.classList.toggle('ngc', r.res === 'NG');
-    const noCause = r.res === 'NG' && !canNGrow(s, r);
-    re.classList.toggle('warnc', noCause);
-    re.title = noCause ? 'Result = NG แต่ค่าไม่หลุดสเปกและ Appearance = OK – ควรแก้เป็น OK' : '';
+    const bad2 = resBad(s, r);
+    re.classList.toggle('warnc', bad2);
+    re.title = bad2 ? `Result ไม่ตรงกับค่าที่วัด – ตามค่าที่วัดควรเป็น ${resAuto(s, r)}` : '';
   });
 }
 
@@ -323,18 +316,21 @@ document.addEventListener('click', e => {
     x.s.rows.splice(x.s.rows.indexOf(x.r), 1); tsel.delete(x.r); if (x.r.id) (st.del = st.del || []).push(x.r.id); save(); drawTable(); return;
   }
   if (t.dataset.zoom) { Viewer.open(t.dataset.zoom, t.dataset.cap); return; }
+  if (t.id === 'btnFixRes') {
+    const bad = s.rows.filter(r => resBad(s, r));
+    if (!bad.length) return;
+    if (!confirm(`แก้ Result ของ ${bad.length} แถว ให้ตรงกับค่าที่วัด (หลุดสเปก = NG, ไม่หลุด = OK) ?`)) return;
+    bad.forEach(r => (r.res = resAuto(s, r)));
+    save(); drawSum(); drawSaved(); Charts.render(s, $('#charts')); return;
+  }
   if (t.id === 'btnAdd') addPiece();
   else if (t.id === 'btnUpdate') commit();
   else if (t.dataset.act) {
     const i = +t.closest('tr').dataset.i, r = s.draft[i];
     if (t.dataset.act === 'g') { r.g = r.g === 'up' ? 'low' : 'up'; applySpec(s, r); }
-    else if (t.dataset.act === 'ng') { r.ng = !r.ng; applySpec(s, r); }
+    else if (t.dataset.act === 'ng') r.ng = !r.ng;
     else if (t.dataset.act === 'ph') { phIdx = i; $('#phIn').click(); return; }
     else if (t.dataset.act === 'phdel') delete r.phd;
-    else if (t.dataset.act === 'rn') {
-      if (!r.rn && !canNG(s, r)) { say(NG_BLOCK); return; }
-      r.rn = !r.rn; r.manual = true;
-    }
     else if (t.dataset.act === 'del') { s.draft.splice(i, 1); ensure(s); }
     save(); drawEntry();
   }
@@ -377,7 +373,7 @@ document.addEventListener('change', e => {
     const k = t.dataset.k, r = x.r, old = r[k];
     r[k] = ['p', 'w', 'l', 't'].includes(k) ? (t.value === '' ? null : +t.value) : (k === 'rm' ? (t.value.trim() || null) : t.value.trim());
     if ((k === 'p' || k === 'd') && dupOf(x.s, r)) { const o = dupOf(x.s, r); r[k] = old; alert(`ชิ้นที่ ${o.p} ของ ${o.g} วันที่ ${o.d} (${x.s.name}) มีอยู่แล้ว – เลขชิ้นซ้ำกันภายใน up หรือ low เดียวกันไม่ได้`); drawTable(); return; }
-    if (k === 'res' && r.res === 'NG' && !canNGrow(x.s, r)) { r[k] = old; alert(NG_BLOCK); drawTable(); return; }
+    if (k === 'res' && r.res === 'NG' && hasSpec(x.s, r, FIELDS.map(f => f[0])) && !oosAnyRow(x.s, r)) { r[k] = old; alert(NG_BLOCK); drawTable(); return; }
     save(); tr.classList.toggle('ngrow', Charts.isNG(r));
     ['w', 'l', 't'].forEach(c => { const el = tr.querySelector(`[data-k="${c}"]`); if (!el) return; el.classList.toggle('out', Charts.isOutlier(x.s, r, c)); el.classList.toggle('oos', oos(x.s, r, c)); });
     ['ok', 'res'].forEach(c => { const el = tr.querySelector(`[data-k="${c}"]`); if (!el) return; el.classList.toggle('ngc', r[c] === 'NG'); el.classList.toggle('okc', r[c] === 'OK'); });
@@ -394,7 +390,7 @@ document.addEventListener('change', e => {
     const r = s.rows[+t.closest('tr').dataset.i], k = t.dataset.k;
     const old = r[k];
     r[k] = t.type === 'number' ? (t.value === '' ? null : +t.value) : t.value;
-    if (k === 'res' && r.res === 'NG' && !canNGrow(s, r)) { r.res = old; alert(NG_BLOCK); drawSaved(); return; }
+    if (k === 'res' && r.res === 'NG' && hasSpec(s, r, FIELDS.map(f => f[0])) && !oosAnyRow(s, r)) { r.res = old; alert(NG_BLOCK); drawSaved(); return; }
     if ((k === 'p' || k === 'd') && dupOf(s, r)) { const o = dupOf(s, r); r[k] = old; alert(`ชิ้นที่ ${o.p} ของ ${o.g} วันที่ ${o.d} มีอยู่แล้ว – เลขชิ้นซ้ำกันภายใน up หรือ low เดียวกันไม่ได้`); drawSaved(); return; }
     save(); flag(); drawSum(); Charts.render(s, $('#charts')); if (k === 'd') drawEntry();
   }
