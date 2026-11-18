@@ -39,7 +39,16 @@ const oos = (s, r, k) => {
   return (a !== '' && Charts.num(+a) && v < +a - E) || (b !== '' && Charts.num(+b) && v > +b + E);
 };
 const oosAny = (s, r) => nk(s).some(k => oos(s, r, k));
-const applySpec = (s, r) => { if (!r.manual) r.rn = oosAny(s, r); }; // หลุดขนาด → Result = NG อัตโนมัติ (ถ้าผู้ใช้กดสลับเองแล้ว จะไม่ทับ)
+/* Result = NG ได้ก็ต่อเมื่อมีสาเหตุจริง: ค่าหลุดสเปก หรือ Appearance = NG
+   (ถ้าช่องนั้นยังไม่ได้ใส่ LSL/USL ไว้ ถือว่าตัดสินไม่ได้ จึงยังปล่อยให้กดเองได้) */
+const hasSpec = (s, r, ks) => ks.some(k => { const [a, b] = Charts.getLim(s, Charts.key(Charts.rty(r), r.g), k); return a !== '' || b !== ''; });
+const canNG = (s, r) => !hasSpec(s, r, nk(s)) || oosAny(s, r) || !!r.ng;                                          // แถวที่กำลังคีย์
+const canNGrow = (s, r) => !hasSpec(s, r, FIELDS.map(f => f[0])) || FIELDS.some(([k]) => oos(s, r, k)) || r.ok === 'NG';  // แถวที่บันทึกแล้ว
+const NG_BLOCK = 'ค่าที่วัดไม่หลุดสเปก และ Appearance = OK → ตั้ง Result = NG ไม่ได้\n(ถ้าชิ้นนี้เสียจริง ให้กด Appearance = NG หรือแก้ค่าที่วัดให้ถูกก่อน)';
+const applySpec = (s, r) => {
+  if (!canNG(s, r)) { r.rn = false; r.manual = false; return; } // ไม่มีสาเหตุ → บังคับกลับเป็น OK
+  if (!r.manual) r.rn = oosAny(s, r);                           // หลุดขนาด → NG อัตโนมัติ (ถ้าผู้ใช้กดสลับเองแล้ว จะไม่ทับ)
+};
 /* ช่วงสเปกของชิ้นที่กำลังคีย์ (ไว้โชว์เป็น placeholder ให้คนคีย์รู้ว่าค่าควรอยู่เท่าไร) */
 const spRange = (s, r, k) => {
   const [a, b] = Charts.getLim(s, Charts.key(Charts.rty(r), r.g), k);
@@ -47,7 +56,13 @@ const spRange = (s, r, k) => {
 };
 function paintRow(tr, s, r) {
   tr.querySelectorAll('.de').forEach(el => el.classList.toggle('oos', oos(s, r, el.dataset.k)));
-  const b = tr.querySelector('[data-act="rn"]'); if (b) { b.textContent = r.rn ? 'NG' : 'OK'; b.classList.toggle('ngon', !!r.rn); }
+  const b = tr.querySelector('[data-act="rn"]');
+  if (b) {
+    b.textContent = r.rn ? 'NG' : 'OK';
+    b.classList.toggle('ngon', !!r.rn);
+    b.classList.toggle('lockng', !canNG(s, r));
+    b.title = canNG(s, r) ? 'กดเพื่อสลับ OK/NG' : NG_BLOCK;
+  }
 }
 
 /* pcs นับแยกกันระหว่าง up และ low (สลับเป็น low แล้วเริ่มนับใหม่) – ห้ามซ้ำภายใน up หรือ low เดียวกัน ในวันเดียวกันของซีตเดียวกัน */
@@ -105,14 +120,14 @@ ${s.draft.map((r, i) => `<tr data-i="${i}"><td class="pn" data-l="ชิ้น�
 <td data-l="ประเภท"><select class="dt" tabindex="-1">${tyOpts(r.ty)}</select></td>
 ${cols.map(([k, n]) => { const rg = spRange(s, r, k); return `<td data-l="${n}${rg ? ` (${rg})` : ''}"><input class="de ${oos(s, r, k) ? 'oos' : ''}" data-k="${k}" type="number" step="any" inputmode="decimal" enterkeyhint="next" placeholder="${rg || n}" title="${rg ? `${n} ต้องอยู่ระหว่าง ${rg}` : n}" value="${esc(r[k])}"></td>`; }).join('')}
 <td data-l="Appearance"><button class="tg ${r.ng ? 'ngon' : ''}" tabindex="-1" data-act="ng">${r.ng ? 'NG' : 'OK'}</button></td>
-<td data-l="Result"><button class="tg ${r.rn ? 'ngon' : ''}" tabindex="-1" data-act="rn">${r.rn ? 'NG' : 'OK'}</button></td>
+<td data-l="Result"><button class="tg ${r.rn ? 'ngon' : ''} ${canNG(s, r) ? '' : 'lockng'}" tabindex="-1" data-act="rn" title="${canNG(s, r) ? 'กดเพื่อสลับ OK/NG' : NG_BLOCK}">${r.rn ? 'NG' : 'OK'}</button></td>
 <td class="rmc" data-l="Remark"><input class="dr" data-k="rm" type="text" placeholder="Remark" value="${esc(r.rm)}"></td>
 <td class="phc" data-l="รูป NG (ถ่ายตอน Appearance = NG)">${r.ng ? photoCell(r) : ''}</td>
 <td class="dlc"><button class="x" tabindex="-1" data-act="del">✕</button></td></tr>`).join('')}
 </tbody></table></div>
 <div class="lm"><button class="btn" id="btnAdd">＋ ชิ้นถัดไป</button>
 <button class="btn primary" id="btnUpdate">Update ▶ แสดงกราฟ</button><span id="msg"></span></div>
-<div class="hint">พิมพ์ค่าแล้วกด Enter เพื่อไปช่องถัดไป / ชิ้นถัดไปอัตโนมัติ · กดปุ่ม up/low และ OK/NG เพื่อสลับ · ค่าที่หลุดสเปกช่องจะเป็นสีแดงและตั้ง Result = NG ให้เอง · วัดครบแล้วกด Update</div>`;
+<div class="hint">พิมพ์ค่าแล้วกด Enter เพื่อไปช่องถัดไป / ชิ้นถัดไปอัตโนมัติ · กดปุ่ม up/low และ OK/NG เพื่อสลับ · ค่าที่หลุดสเปกช่องจะเป็นสีแดงและตั้ง Result = NG ให้เอง · ถ้าค่าไม่หลุดสเปกและ Appearance = OK จะตั้ง Result = NG ไม่ได้ · วัดครบแล้วกด Update</div>`;
 }
 function say(t) { const m = $('#msg'); if (m) m.textContent = t; }
 function focusPiece(i, k) {
@@ -127,7 +142,7 @@ function commit() {
   if (!st.by.trim()) return say('ใส่ชื่อผู้บันทึกก่อน');
   const rows = s.draft.filter(r => keys.some(k => Charts.num(r[k])));
   if (!rows.length) return say('ยังไม่มีค่าที่กรอก');
-  rows.forEach(r => { if (!r.manual && oosAny(s, r)) r.rn = true; });
+  rows.forEach(r => { if (!canNG(s, r)) { r.rn = false; r.manual = false; } else if (!r.manual && oosAny(s, r)) r.rn = true; });
   const manOK = rows.map((r, i) => (r.manual && !r.rn && oosAny(s, r) ? i + 1 : 0)).filter(Boolean);
   if (manOK.length && !confirm(`ชิ้นที่ ${manOK.join(', ')} มีค่าหลุดขนาด แต่ Result ถูกตั้งเป็น OK\n\nยืนยันบันทึกแบบนี้ไหม?`)) return;
   const bad = [];
@@ -166,7 +181,12 @@ function flag() {
     const r = s.rows[+tr.dataset.i];
     ['w', 'l', 't'].forEach(k => { const el = tr.querySelector(`[data-k="${k}"]`); if (!el) return; el.classList.toggle('out', Charts.isOutlier(s, r, k)); el.classList.toggle('oos', oos(s, r, k)); });
     tr.querySelector('[data-k="p"]').classList.toggle('dupc', !!dupOf(s, r));
-    tr.querySelector('[data-k="ok"]').classList.toggle('ngc', r.ok === 'NG'); tr.querySelector('[data-k="res"]').classList.toggle('ngc', r.res === 'NG');
+    tr.querySelector('[data-k="ok"]').classList.toggle('ngc', r.ok === 'NG');
+    const re = tr.querySelector('[data-k="res"]');
+    re.classList.toggle('ngc', r.res === 'NG');
+    const noCause = r.res === 'NG' && !canNGrow(s, r);
+    re.classList.toggle('warnc', noCause);
+    re.title = noCause ? 'Result = NG แต่ค่าไม่หลุดสเปกและ Appearance = OK – ควรแก้เป็น OK' : '';
   });
 }
 
@@ -308,10 +328,13 @@ document.addEventListener('click', e => {
   else if (t.dataset.act) {
     const i = +t.closest('tr').dataset.i, r = s.draft[i];
     if (t.dataset.act === 'g') { r.g = r.g === 'up' ? 'low' : 'up'; applySpec(s, r); }
-    else if (t.dataset.act === 'ng') r.ng = !r.ng;
+    else if (t.dataset.act === 'ng') { r.ng = !r.ng; applySpec(s, r); }
     else if (t.dataset.act === 'ph') { phIdx = i; $('#phIn').click(); return; }
     else if (t.dataset.act === 'phdel') delete r.phd;
-    else if (t.dataset.act === 'rn') { r.rn = !r.rn; r.manual = true; }
+    else if (t.dataset.act === 'rn') {
+      if (!r.rn && !canNG(s, r)) { say(NG_BLOCK); return; }
+      r.rn = !r.rn; r.manual = true;
+    }
     else if (t.dataset.act === 'del') { s.draft.splice(i, 1); ensure(s); }
     save(); drawEntry();
   }
@@ -354,6 +377,7 @@ document.addEventListener('change', e => {
     const k = t.dataset.k, r = x.r, old = r[k];
     r[k] = ['p', 'w', 'l', 't'].includes(k) ? (t.value === '' ? null : +t.value) : (k === 'rm' ? (t.value.trim() || null) : t.value.trim());
     if ((k === 'p' || k === 'd') && dupOf(x.s, r)) { const o = dupOf(x.s, r); r[k] = old; alert(`ชิ้นที่ ${o.p} ของ ${o.g} วันที่ ${o.d} (${x.s.name}) มีอยู่แล้ว – เลขชิ้นซ้ำกันภายใน up หรือ low เดียวกันไม่ได้`); drawTable(); return; }
+    if (k === 'res' && r.res === 'NG' && !canNGrow(x.s, r)) { r[k] = old; alert(NG_BLOCK); drawTable(); return; }
     save(); tr.classList.toggle('ngrow', Charts.isNG(r));
     ['w', 'l', 't'].forEach(c => { const el = tr.querySelector(`[data-k="${c}"]`); if (!el) return; el.classList.toggle('out', Charts.isOutlier(x.s, r, c)); el.classList.toggle('oos', oos(x.s, r, c)); });
     ['ok', 'res'].forEach(c => { const el = tr.querySelector(`[data-k="${c}"]`); if (!el) return; el.classList.toggle('ngc', r[c] === 'NG'); el.classList.toggle('okc', r[c] === 'OK'); });
@@ -370,6 +394,7 @@ document.addEventListener('change', e => {
     const r = s.rows[+t.closest('tr').dataset.i], k = t.dataset.k;
     const old = r[k];
     r[k] = t.type === 'number' ? (t.value === '' ? null : +t.value) : t.value;
+    if (k === 'res' && r.res === 'NG' && !canNGrow(s, r)) { r.res = old; alert(NG_BLOCK); drawSaved(); return; }
     if ((k === 'p' || k === 'd') && dupOf(s, r)) { const o = dupOf(s, r); r[k] = old; alert(`ชิ้นที่ ${o.p} ของ ${o.g} วันที่ ${o.d} มีอยู่แล้ว – เลขชิ้นซ้ำกันภายใน up หรือ low เดียวกันไม่ได้`); drawSaved(); return; }
     save(); flag(); drawSum(); Charts.render(s, $('#charts')); if (k === 'd') drawEntry();
   }
