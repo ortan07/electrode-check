@@ -370,6 +370,12 @@ USL <input type="number" step="any" value="${b}" ${dis} data-g="${key}" data-k="
         responsive: true, maintainAspectRatio: false, animation: false,
         layout: { padding: { top: this.xmode === 'seq' ? 10 : 2 } },
         interaction: { mode: 'nearest', intersect: true },
+                 onClick: (evt, els, c) => {
+          const hit = c.getElementsAtEventForMode(evt, 'nearest', { intersect: false }, true)[0];
+          const pt = hit && c.data.datasets[hit.datasetIndex].data[hit.index];
+          if (pt && pt.r) this.showDay(pt.r.d, ty, g);
+        },
+        onHover: (evt, els) => { if (evt.native) evt.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
         plugins: {
           legend: { display: false },
           tooltip: {
