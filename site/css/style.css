@@ -45,7 +45,7 @@ h2{font-size:15px;margin:18px 0 8px;color:var(--mu);text-transform:uppercase;let
 .pn{width:56px;text-align:center;font-weight:700;color:var(--mu)}
 .tg{border:1px solid var(--bd);background:var(--bg);color:var(--tx);border-radius:6px;padding:6px 10px;cursor:pointer;font:inherit;font-size:13px}
 .tg.ngon{background:var(--ng);border-color:var(--ng);color:#fff}
-.tg.lockng{opacity:.55;border-style:dashed;cursor:not-allowed}
+.tg.auto{display:inline-block;cursor:default;background:transparent;opacity:.85}
 select.warnc{background:var(--warnbg);border-color:var(--lim)}
 .btn.primary{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:600;padding:8px 16px}
 .btn.lockbtn.on{border-color:var(--lim);color:var(--lim)}
