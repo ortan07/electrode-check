@@ -1,5 +1,8 @@
 /* วาดกราฟของแต่ละซีต (Chart.js)
    ปรับใหม่ให้อ่านง่าย:
+   - ค่าเริ่มต้น = "เรียงตามเวลา" วาดเป็นเส้นเดียว สีเดียว (ไม่ใช่ 10 กว่าเส้นซ้อนกัน)
+   - คั่นวันด้วยแถบพื้นหลังสลับสี + วันที่กำกับบนแถบ
+   - แกน Y ซูมเข้าหาช่วงสเปก ค่าที่ไกลมากดันไปไว้ที่ขอบกราฟ (ไม่ให้สเปกถูกบีบจนแบน)
    - มีแถบช่วงสเปก (พื้นที่ระหว่าง LSL–USL) + เส้นประ LSL/USL
    - จุดที่หลุดสเปก = ◆ แดง, จุดที่ NG = ▲ แดง (เห็นทันทีว่าผิดตรงไหน)
    - เอา legend ยาว ๆ ออก ใช้ "ชิปวัน" ใต้กราฟแทน กดเพื่อซ่อน/แสดงวันนั้นได้
@@ -22,7 +25,7 @@ const Charts = {
   /* ---------- สถานะการแสดงผล (จำไว้ระหว่างใช้งาน) ---------- */
   days: 3,          // แสดงกี่วันล่าสุด (0 = ทั้งหมด)
   off: new Set(),   // วันที่ถูกกดซ่อน
-  xmode: 'pcs',     // 'pcs' = ซ้อนทุกวันบนแกนชิ้นที่ · 'seq' = เรียงตามเวลา
+  xmode: 'seq',     // 'seq' = เส้นเดียวเรียงตามเวลา (อ่านง่ายสุด) · 'pcs' = ซ้อนทุกวันบนแกนชิ้นที่
   _s: null,
 
   // ค่าใหญ่กว่าค่ากลางเกิน 20 เท่า ถือว่าน่าจะพิมพ์ผิด (เช่น 5467 แทน 54.67)
@@ -80,7 +83,7 @@ const Charts = {
       const why = [];
       mk.forEach(([k]) => { if (this.oosOf(s, r, k)) why.push(`${this.SHORT[k]} หลุดสเปก`); });
       if (r.ok === 'NG') why.push('Appearance NG');
-      if (r.res === 'NG' && !why.length) why.push('Result NG');
+      if (r.res === 'NG' && !why.length) why.push('Result NG (ค่าไม่หลุดสเปก – ควรแก้เป็น OK)');
       return `<tr><td>${this.esc(r.d)}</td><td>${r.p}</td><td>${r.g}</td><td>${this.rty(r) === 'new' ? 'New' : 'Wire Cut'}</td>`
         + mk.map(([k]) => `<td class="${this.oosOf(s, r, k) ? 'oosc' : ''}">${this.num(r[k]) ? r[k] : '-'}</td>`).join('')
         + `<td class="cause">${why.join(' · ')}</td><td>${this.esc(r.by || '')}</td><td>${this.esc(r.rm || '')}</td><td>${this.thumbOf(r)}</td></tr>`;
@@ -125,10 +128,14 @@ const Charts = {
     return `<div class="chctl"><span class="lbl">ช่วงวันที่:</span>`
       + opt.map(([v, n]) => `<button class="tgl ${this.days === v ? 'on' : ''}" data-days="${v}">${n}</button>`).join('')
       + `<span class="sep"></span><span class="lbl">แกนนอน:</span>`
+      + `<button class="tgl ${this.xmode === 'seq' ? 'on' : ''}" data-x="seq">เรียงตามเวลา (อ่านง่าย)</button>`
       + `<button class="tgl ${this.xmode === 'pcs' ? 'on' : ''}" data-x="pcs">ซ้อนตามชิ้นที่</button>`
-      + `<button class="tgl ${this.xmode === 'seq' ? 'on' : ''}" data-x="seq">เรียงตามเวลา</button>`
       + `<span class="note">แสดง ${vis.length} จาก ${all.length} วัน${this.off.size ? ` · ซ่อนอยู่ ${this.off.size} วัน` : ''}</span></div>`
-      + `<div class="chhint">วิธีอ่านกราฟ: เส้นประส้ม = LSL/USL · พื้นที่จาง = ช่วงที่อยู่ในสเปก · ◆ แดง = ค่าหลุดสเปก · ▲ แดง = ชิ้นที่ติด NG · กดชิปวันใต้กราฟเพื่อซ่อน/แสดงวันนั้น</div>`;
+      + `<div class="chhint">วิธีอ่านกราฟ: เส้นประส้ม = LSL/USL · พื้นที่เขียวจาง = ช่วงที่อยู่ในสเปก · ◆ แดง = ค่าหลุดสเปก · ▲ แดง = ชิ้นที่ติด NG`
+      + (this.xmode === 'seq'
+        ? ' · แถบพื้นหลังสลับสี = คนละวัน (วันที่กำกับอยู่บนแถบ)'
+        : ' · เส้นแต่ละสี = คนละวัน (ถ้าดูยากให้กด "เรียงตามเวลา")')
+      + ` · ค่าที่ไกลจากสเปกมากจะถูกแสดงไว้ที่ขอบกราฟ · กดชิปวันใต้กราฟเพื่อซ่อน/แสดงวันนั้น</div>`;
   },
 
   bind(box) {
@@ -229,6 +236,24 @@ USL <input type="number" step="any" value="${b}" ${dis} data-g="${key}" data-k="
     const xOf = r => (this.xmode === 'pcs' ? (+r.p || 0) : seq.get(r));
     const xs = ord.map(xOf), xmin = xs.length ? Math.min(...xs) : 0, xmax = xs.length ? Math.max(...xs) : 1;
 
+    /* กรอบแกน Y – ซูมเข้าหาช่วงสเปก ค่าที่ไกลมากจะถูกดันมาอยู่ที่ขอบกราฟ */
+    let ylo, yhi;
+    if (a !== null && b !== null && b > a) {
+      const w = b - a;
+      ylo = a - w * .45; yhi = b + w * .45;
+      const near = vals.filter(v => v >= a - w * 3 && v <= b + w * 3);
+      if (near.length) { ylo = Math.min(ylo, Math.min(...near)); yhi = Math.max(yhi, Math.max(...near)); }
+      const p = (yhi - ylo) * .06; ylo -= p; yhi += p;
+    } else {
+      let lo = vals.length ? Math.min(...vals) : 0, hi = vals.length ? Math.max(...vals) : 1;
+      if (a !== null) lo = Math.min(lo, a);
+      if (b !== null) hi = Math.max(hi, b);
+      const p = ((hi - lo) || Math.abs(hi) * .02 || 1) * .12; ylo = lo - p; yhi = hi + p;
+    }
+    const clamp = v => Math.min(yhi, Math.max(ylo, v));
+    const nClip = vals.filter(v => v < ylo || v > yhi).length;
+    if (nClip && sumEl && vals.length) sumEl.insertAdjacentHTML('beforeend', `<span class="bad">⚠ ${nClip} จุดอยู่นอกกรอบ (แสดงที่ขอบกราฟ)</span>`);
+
     /* แถบสเปก + เส้น LSL/USL (วาดไว้ด้านหลัง) */
     const ds = [];
     const lineOf = (lab, y) => ({ label: lab, data: [{ x: xmin, y }, { x: xmax, y }], borderColor: lim, borderWidth: 1.6, borderDash: [7, 4], pointRadius: 0, pointHitRadius: 0, order: 0, tension: 0 });
@@ -240,31 +265,73 @@ USL <input type="number" step="any" value="${b}" ${dis} data-g="${key}" data-k="
       if (a !== null) ds.push(lineOf('LSL', a));
     }
 
-    /* เส้นข้อมูลแยกตามวัน */
-    [...new Set(ord.map(r => r.d))].forEach(d => {
-      const col = colOf(d), rr = ord.filter(r => r.d === d);
-      ds.push({
-        label: d, order: 1, tension: .15, borderWidth: 1.7, borderColor: col + 'B3', backgroundColor: col,
-        data: rr.map(r => ({ x: xOf(r), y: r[k], r })),
-        pointRadius: rr.map(r => (bad(r) ? 8 : 3.5)),
-        pointHoverRadius: rr.map(r => (bad(r) ? 9 : 6)),
-        pointStyle: rr.map(r => (bad(r) === 'oos' ? 'rectRot' : bad(r) === 'ng' ? 'triangle' : 'circle')),
-        pointBackgroundColor: rr.map(r => (bad(r) ? ngc : col)),
-        pointBorderColor: rr.map(r => (bad(r) ? ngc : col)),
-        pointBorderWidth: rr.map(r => (bad(r) ? 2 : 1))
-      });
+    /* หน้าตาของจุด (ค่าที่เกินกรอบถูก clamp มาไว้ที่ขอบ แต่ tooltip ยังโชว์ค่าจริง) */
+    const styleOf = rr => ({
+      data: rr.map(r => ({ x: xOf(r), y: clamp(r[k]), r })),
+      pointRadius: rr.map(r => (bad(r) ? 7.5 : 3)),
+      pointHoverRadius: rr.map(r => (bad(r) ? 9.5 : 6)),
+      pointStyle: rr.map(r => (bad(r) === 'oos' ? 'rectRot' : bad(r) === 'ng' ? 'triangle' : 'circle'))
     });
 
-    /* ขอบบน-ล่างของแกน Y ให้เห็นเส้นสเปกเสมอ */
-    let lo = vals.length ? Math.min(...vals) : 0, hi = vals.length ? Math.max(...vals) : 1;
-    if (a !== null) lo = Math.min(lo, a); if (b !== null) hi = Math.max(hi, b);
-    const pad = ((hi - lo) || Math.abs(hi) * .02 || 1) * .12;
+    const bands = [];
+    if (this.xmode === 'seq') {
+      /* เรียงตามเวลา = เส้นเดียว สีเดียว (อ่านง่ายกว่าเส้นซ้อนกันหลายวัน) */
+      const col = this.css('--ac') || '#2563eb';
+      ds.push({
+        label: 'ค่าที่วัด', order: 1, tension: .12, borderWidth: 1.6, borderColor: col + '99', backgroundColor: col,
+        ...styleOf(ord),
+        pointBackgroundColor: ord.map(r => (bad(r) ? ngc : col)),
+        pointBorderColor: ord.map(r => (bad(r) ? ngc : col)),
+        pointBorderWidth: ord.map(r => (bad(r) ? 2 : 1))
+      });
+      [...new Set(ord.map(r => r.d))].forEach(d => {
+        const dx = ord.filter(r => r.d === d).map(xOf);
+        bands.push({ d, x0: Math.min(...dx) - .5, x1: Math.max(...dx) + .5 });
+      });
+    } else {
+      /* ซ้อนตามชิ้นที่ = เส้นแยกตามวัน */
+      [...new Set(ord.map(r => r.d))].forEach(d => {
+        const col = colOf(d), rr = ord.filter(r => r.d === d);
+        ds.push({
+          label: d, order: 1, tension: .15, borderWidth: 1.5, borderColor: col + '99', backgroundColor: col,
+          ...styleOf(rr),
+          pointBackgroundColor: rr.map(r => (bad(r) ? ngc : col)),
+          pointBorderColor: rr.map(r => (bad(r) ? ngc : col)),
+          pointBorderWidth: rr.map(r => (bad(r) ? 2 : 1))
+        });
+      });
+    }
+
+    /* แถบคั่นวัน + วันที่กำกับ (เฉพาะโหมดเรียงตามเวลา) */
+    const dayBand = {
+      id: 'dayband',
+      beforeDatasetsDraw(ch) {
+        if (!bands.length || !ch.chartArea) return;
+        const ca = ch.chartArea, sx = ch.scales.x, c = ch.ctx;
+        c.save();
+        bands.forEach((bd, i) => {
+          const L = Math.max(ca.left, sx.getPixelForValue(bd.x0)), R = Math.min(ca.right, sx.getPixelForValue(bd.x1));
+          if (R <= L) return;
+          if (i % 2) { c.fillStyle = 'rgba(148,163,184,.09)'; c.fillRect(L, ca.top, R - L, ca.bottom - ca.top); }
+          if (i) { c.strokeStyle = 'rgba(148,163,184,.45)'; c.lineWidth = 1; c.beginPath(); c.moveTo(L, ca.top); c.lineTo(L, ca.bottom); c.stroke(); }
+          if (R - L > 40) {
+            c.fillStyle = mu || '#94a3b8';
+            c.font = '10px system-ui,"Segoe UI",sans-serif';
+            c.textAlign = 'center';
+            c.fillText(String(bd.d).slice(0, 5), (L + R) / 2, ca.top + 12);
+          }
+        });
+        c.restore();
+      }
+    };
 
     this.list.push(new Chart(cv, {
       type: 'line',
       data: { datasets: ds },
+      plugins: [dayBand],
       options: {
         responsive: true, maintainAspectRatio: false, animation: false,
+        layout: { padding: { top: this.xmode === 'seq' ? 10 : 2 } },
         interaction: { mode: 'nearest', intersect: true },
         plugins: {
           legend: { display: false },
@@ -276,6 +343,7 @@ USL <input type="number" step="any" value="${b}" ${dis} data-g="${key}" data-k="
                 if (!r) return `${ctx.dataset.label} = ${ctx.parsed.y}`;
                 const o = [`${this.SHORT[k]} = ${r[k]}`];
                 if (this.outOf(r[k], a, b)) o.push('⚠ หลุดสเปก');
+                if (r[k] < ylo || r[k] > yhi) o.push('(ค่าจริงอยู่นอกกรอบกราฟ)');
                 if (r.ok === 'NG') o.push('Appearance NG');
                 if (r.res === 'NG') o.push('Result NG');
                 if (r.by) o.push('ผู้บันทึก: ' + r.by);
@@ -290,11 +358,11 @@ USL <input type="number" step="any" value="${b}" ${dis} data-g="${key}" data-k="
           x: {
             type: 'linear',
             min: this.xmode === 'pcs' ? 1 : undefined,
-            title: { display: true, color: mu, font: { size: 11 }, text: this.xmode === 'pcs' ? 'ชิ้นที่ (pcs) – ทุกวันซ้อนกัน' : 'ลำดับการวัด (วันเก่า → วันใหม่)' },
-            ticks: { color: mu, autoSkip: true, maxTicksLimit: 14, precision: 0, callback: v => (this.xmode === 'pcs' ? v : (seqLabel[v] ?? '')) },
+            title: { display: true, color: mu, font: { size: 11 }, text: this.xmode === 'pcs' ? 'ชิ้นที่ (pcs) – ทุกวันซ้อนกัน' : 'เรียงตามเวลา (ซ้าย = เก่า) · ตัวเลข = ชิ้นที่' },
+            ticks: { color: mu, autoSkip: true, maxTicksLimit: 16, precision: 0, callback: v => (this.xmode === 'pcs' ? v : (seqLabel[v] ?? '')) },
             grid: { color: gr }
           },
-          y: { ticks: { color: mu }, grid: { color: gr }, suggestedMin: lo - pad, suggestedMax: hi + pad }
+          y: { ticks: { color: mu }, grid: { color: gr }, min: ylo, max: yhi }
         }
       }
     }));
